@@ -1,0 +1,34 @@
+{
+  "transmission": {
+    "enabled": true,
+    "message": "NICTIA SYSTEM ONLINE. Autonomous audiovisual generation active. New transmission detected...",
+    "cta": {
+      "enabled": true,
+      "label": "Listen on Spotify",
+      "url": "https://open.spotify.com/artist/nictia"
+    }
+  },
+  "links": {
+    "primary": {
+      "url": "https://open.spotify.com/artist/nictia",
+      "label": "Spotify"
+    },
+    "social": [
+      {
+        "platform": "X",
+        "url": "https://x.com/nictia_music",
+        "label": "@nictia_music"
+      },
+      {
+        "platform": "Instagram",
+        "url": "https://instagram.com/nictia_music",
+        "label": "@nictia_music"
+      }
+    ]
+  },
+  "systemStatus": {
+    "version": "0.2.0",
+    "mode": "GENERATIVE",
+    "uptime": "CONTINUOUS"
+  }
+}

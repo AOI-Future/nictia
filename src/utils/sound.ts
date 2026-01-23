@@ -216,3 +216,38 @@ export function getFrequencyData(): Float32Array {
 export function getWaveformData(): Float32Array {
   return getWaveformAnalyser().getValue() as Float32Array;
 }
+
+// Volume control
+let isMuted = false;
+let currentVolume = 80; // 0-100
+
+export function setVolume(volume: number): void {
+  currentVolume = Math.max(0, Math.min(100, volume));
+  if (!isMuted) {
+    // Convert 0-100 to dB scale (-60 to 0)
+    const db = volume === 0 ? -Infinity : -60 + (currentVolume / 100) * 60;
+    Tone.getDestination().volume.value = db;
+  }
+}
+
+export function getVolume(): number {
+  return currentVolume;
+}
+
+export function setMuted(muted: boolean): void {
+  isMuted = muted;
+  if (muted) {
+    Tone.getDestination().volume.value = -Infinity;
+  } else {
+    setVolume(currentVolume);
+  }
+}
+
+export function getMuted(): boolean {
+  return isMuted;
+}
+
+export function toggleMute(): boolean {
+  setMuted(!isMuted);
+  return isMuted;
+}

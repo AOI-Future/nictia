@@ -14,6 +14,11 @@ const Visualizer = dynamic(() => import("@/components/Visualizer"), {
   ),
 });
 
+// Dynamic import for Overlay UI (SSR disabled for QR code)
+const OverlayUI = dynamic(() => import("@/components/OverlayUI"), {
+  ssr: false,
+});
+
 export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -63,28 +68,35 @@ export default function Home() {
       {/* 3D Visualizer */}
       <Visualizer />
 
-      {/* UI Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* HUD Overlay UI (Volume, Transmission, QR) */}
+      <OverlayUI isActive={isInitialized} />
+
+      {/* Core UI Overlay */}
+      <div className="absolute inset-0 pointer-events-none z-20">
         {/* Title - top left */}
         <div className="absolute top-6 left-6">
-          <h1 className="text-white/80 text-xs tracking-[0.3em] font-light">
-            NICTIA
-          </h1>
-          <p className="text-white/30 text-[10px] tracking-widest mt-1">
-            AUTONOMOUS AUDIOVISUAL SYSTEM
-          </p>
+          <div className="relative">
+            {/* HUD frame decoration */}
+            <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-cyan-400/60 to-transparent" />
+            <h1 className="text-white/90 text-sm tracking-[0.4em] font-light pl-2">
+              NICTIA
+            </h1>
+            <p className="text-white/40 text-[10px] tracking-[0.2em] mt-1 pl-2">
+              AUTONOMOUS AUDIOVISUAL SYSTEM
+            </p>
+          </div>
         </div>
 
-        {/* Status indicator - top right */}
+        {/* Status indicator - top right (only before HUD overlay shows) */}
         {isInitialized && (
-          <div className="absolute top-6 right-6 flex items-center gap-2">
+          <div className="absolute top-14 right-6 flex items-center gap-2">
             <div
-              className={`w-2 h-2 rounded-full ${
+              className={`w-2 h-2 ${
                 isPlaying ? "bg-cyan-400 animate-pulse" : "bg-white/30"
               }`}
             />
-            <span className="text-white/50 text-[10px] tracking-widest">
-              {isPlaying ? "ACTIVE" : "PAUSED"}
+            <span className="text-white/50 text-[10px] tracking-widest font-mono">
+              {isPlaying ? "STREAM_ACTIVE" : "STREAM_PAUSED"}
             </span>
           </div>
         )}
@@ -97,12 +109,19 @@ export default function Home() {
               disabled={isLoading}
               className="pointer-events-auto group relative"
             >
-              {/* Outer ring */}
-              <div className="absolute inset-0 rounded-full border border-white/20 scale-150 group-hover:scale-[1.6] group-hover:border-white/40 transition-all duration-500" />
+              {/* Animated outer rings */}
+              <div className="absolute inset-0 rounded-full border border-cyan-400/20 scale-[2] group-hover:scale-[2.2] group-hover:border-cyan-400/40 transition-all duration-700 animate-pulse" />
+              <div className="absolute inset-0 rounded-full border border-white/10 scale-[2.5] group-hover:scale-[2.8] transition-all duration-1000" />
 
               {/* Main button */}
-              <div className="relative px-8 py-4 rounded-full border border-white/30 bg-white/5 backdrop-blur-sm group-hover:bg-white/10 group-hover:border-white/50 transition-all duration-300">
-                <span className="text-white/80 text-xs tracking-[0.2em] font-light">
+              <div className="relative px-10 py-5 border border-cyan-400/30 bg-black/60 backdrop-blur-md group-hover:bg-cyan-400/10 group-hover:border-cyan-400/60 transition-all duration-300">
+                {/* Corner decorations */}
+                <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-400/60" />
+                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-400/60" />
+                <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-400/60" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-400/60" />
+
+                <span className="text-cyan-400/90 text-xs tracking-[0.3em] font-mono">
                   {isLoading ? "INITIALIZING..." : "INITIALIZE SYSTEM"}
                 </span>
               </div>
@@ -110,28 +129,23 @@ export default function Home() {
           ) : (
             <button
               onClick={handleToggle}
-              className="pointer-events-auto opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-500 px-6 py-3 rounded-full border border-white/20 bg-black/50 backdrop-blur-sm"
+              className="pointer-events-auto opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-500 px-6 py-3 border border-white/20 bg-black/50 backdrop-blur-sm"
             >
-              <span className="text-white/60 text-[10px] tracking-[0.2em]">
-                {isPlaying ? "PAUSE" : "RESUME"}
+              <span className="text-white/60 text-[10px] tracking-[0.3em] font-mono">
+                {isPlaying ? "PAUSE_STREAM" : "RESUME_STREAM"}
               </span>
             </button>
           )}
         </div>
 
-        {/* Instructions - bottom */}
+        {/* Instructions - bottom center */}
         {isInitialized && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-            <p className="text-white/20 text-[10px] tracking-widest">
-              PRESS SPACE TO {isPlaying ? "PAUSE" : "RESUME"}
+            <p className="text-white/20 text-[10px] tracking-widest font-mono">
+              [SPACE] {isPlaying ? "PAUSE" : "RESUME"}
             </p>
           </div>
         )}
-
-        {/* Version - bottom right */}
-        <div className="absolute bottom-6 right-6">
-          <p className="text-white/20 text-[10px] tracking-widest">v0.1.0</p>
-        </div>
       </div>
     </main>
   );
