@@ -251,3 +251,115 @@ export function toggleMute(): boolean {
   setMuted(!isMuted);
   return isMuted;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Bio-Rhythm System: Environment-reactive audio parameters
+// ═══════════════════════════════════════════════════════════════
+
+export interface AudioEnvironmentParams {
+  bpm: number;
+  reverbWet: number;
+  filterFrequency: number;
+  noiseLevel: number;
+  energy: "high" | "low";
+  waveformType: "sine" | "triangle" | "square";
+}
+
+// Rain/ambient noise synth
+let rainNoiseSynth: Tone.NoiseSynth | null = null;
+let rainNoiseGain: Tone.Gain | null = null;
+
+// Current environment state
+let currentEnvParams: AudioEnvironmentParams = {
+  bpm: 120,
+  reverbWet: 0.5,
+  filterFrequency: 2000,
+  noiseLevel: 0,
+  energy: "high",
+  waveformType: "sine",
+};
+
+export function updateEnvironmentAudio(params: AudioEnvironmentParams): void {
+  if (!isInitialized) return;
+
+  currentEnvParams = params;
+
+  // Update BPM with smooth transition
+  const transport = Tone.getTransport();
+  transport.bpm.rampTo(params.bpm, 4); // 4 second transition
+
+  // Update reverb wet level
+  if (reverb) {
+    reverb.wet.rampTo(params.reverbWet, 2);
+  }
+
+  // Update filter frequency
+  if (filter) {
+    filter.frequency.rampTo(params.filterFrequency, 3);
+  }
+
+  // Update drone synth waveform
+  if (droneSynth) {
+    // PolySynth doesn't support direct oscillator type change easily
+    // So we adjust the volume based on energy instead
+    const droneVolume = params.energy === "high" ? -10 : -14;
+    droneSynth.volume.rampTo(droneVolume, 2);
+  }
+
+  // Update pulse synth based on energy
+  if (pulseSynth) {
+    const pulseVolume = params.energy === "high" ? -16 : -22;
+    pulseSynth.volume.rampTo(pulseVolume, 2);
+  }
+
+  // Handle rain/ambient noise
+  updateRainNoise(params.noiseLevel);
+}
+
+function updateRainNoise(level: number): void {
+  // Create rain noise synth if not exists
+  if (!rainNoiseSynth && reverb) {
+    rainNoiseGain = new Tone.Gain(0).connect(reverb);
+    rainNoiseSynth = new Tone.NoiseSynth({
+      noise: { type: "brown" },
+      envelope: {
+        attack: 2,
+        decay: 0,
+        sustain: 1,
+        release: 2,
+      },
+    }).connect(rainNoiseGain);
+  }
+
+  if (rainNoiseGain) {
+    if (level > 0) {
+      // Convert 0-1 to dB (-40 to -12)
+      const db = -40 + level * 28;
+      rainNoiseGain.gain.rampTo(Tone.dbToGain(db), 3);
+
+      // Start rain noise if not playing
+      if (rainNoiseSynth && isPlaying) {
+        rainNoiseSynth.triggerAttack();
+      }
+    } else {
+      rainNoiseGain.gain.rampTo(0, 2);
+      if (rainNoiseSynth) {
+        rainNoiseSynth.triggerRelease();
+      }
+    }
+  }
+}
+
+export function getEnvironmentParams(): AudioEnvironmentParams {
+  return currentEnvParams;
+}
+
+// Adjust pulse probability based on energy
+export function getPulseProbability(): number {
+  return currentEnvParams.energy === "high" ? 0.6 : 0.3;
+}
+
+// Adjust noise burst probability based on environment
+export function getNoiseBurstProbability(): number {
+  return currentEnvParams.noiseLevel > 0 ? 0.5 : 0.3;
+}

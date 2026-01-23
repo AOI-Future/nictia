@@ -2,7 +2,15 @@
 
 import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { initAudio, startAudio, stopAudio, getIsPlaying } from "@/utils/sound";
+import {
+  initAudio,
+  startAudio,
+  stopAudio,
+  getIsPlaying,
+  updateEnvironmentAudio,
+} from "@/utils/sound";
+import useEnvironment from "@/hooks/useEnvironment";
+import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
 // Dynamic import for R3F components (SSR disabled)
 const Visualizer = dynamic(() => import("@/components/Visualizer"), {
@@ -19,10 +27,90 @@ const OverlayUI = dynamic(() => import("@/components/OverlayUI"), {
   ssr: false,
 });
 
+// Environment indicator component
+function EnvironmentIndicator({
+  state,
+  params,
+}: {
+  state: ReturnType<typeof useEnvironment>["state"];
+  params: EnvironmentParams;
+}) {
+  if (state.isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-[10px] text-white/30 font-mono">
+        <div className="w-2 h-2 bg-yellow-400/50 animate-pulse" />
+        <span>SCANNING ENVIRONMENT...</span>
+      </div>
+    );
+  }
+
+  const weatherIcon = {
+    clear: "CLEAR",
+    cloudy: "CLOUDY",
+    rain: "RAIN",
+    snow: "SNOW",
+    storm: "STORM",
+  }[state.weather];
+
+  const timeIcon = state.timeOfDay === "day" ? "DAY" : "NIGHT";
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-3 text-[10px] text-white/40 font-mono tracking-wider">
+        <span className="flex items-center gap-1">
+          <span
+            className={`w-1.5 h-1.5 ${
+              state.timeOfDay === "day" ? "bg-yellow-400" : "bg-blue-400"
+            }`}
+          />
+          {timeIcon}
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className={`w-1.5 h-1.5 ${
+              state.weather === "clear"
+                ? "bg-cyan-400"
+                : state.weather === "rain" || state.weather === "storm"
+                ? "bg-blue-500"
+                : "bg-gray-400"
+            }`}
+          />
+          {weatherIcon}
+        </span>
+        <span className="text-white/20">
+          {Math.round(state.temperature)}°C
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-[9px] text-white/20 font-mono">
+        <span>BPM:{Math.round(params.bpm)}</span>
+        <span>|</span>
+        <span>ENERGY:{params.energy.toUpperCase()}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Bio-Rhythm System: Environment hook
+  const { state: envState, params: envParams } = useEnvironment();
+
+  // Update audio parameters when environment changes
+  useEffect(() => {
+    if (isInitialized && !envState.isLoading) {
+      updateEnvironmentAudio({
+        bpm: envParams.bpm,
+        reverbWet: envParams.reverbWet,
+        filterFrequency: envParams.filterFrequency,
+        noiseLevel: envParams.noiseLevel,
+        energy: envParams.energy,
+        waveformType: envParams.waveformType,
+      });
+    }
+  }, [isInitialized, envState.isLoading, envParams]);
 
   const handleInitialize = useCallback(async () => {
     if (isLoading) return;
@@ -30,6 +118,15 @@ export default function Home() {
     setIsLoading(true);
     try {
       await initAudio();
+      // Apply initial environment parameters
+      updateEnvironmentAudio({
+        bpm: envParams.bpm,
+        reverbWet: envParams.reverbWet,
+        filterFrequency: envParams.filterFrequency,
+        noiseLevel: envParams.noiseLevel,
+        energy: envParams.energy,
+        waveformType: envParams.waveformType,
+      });
       startAudio();
       setIsInitialized(true);
       setIsPlaying(true);
@@ -38,7 +135,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, envParams]);
 
   const handleToggle = useCallback(() => {
     if (getIsPlaying()) {
@@ -65,8 +162,8 @@ export default function Home() {
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
-      {/* 3D Visualizer */}
-      <Visualizer />
+      {/* 3D Visualizer with environment params */}
+      <Visualizer envParams={envParams} />
 
       {/* HUD Overlay UI (Volume, Transmission, QR) */}
       <OverlayUI isActive={isInitialized} />
@@ -84,10 +181,20 @@ export default function Home() {
             <p className="text-white/40 text-[10px] tracking-[0.2em] mt-1 pl-2">
               AUTONOMOUS AUDIOVISUAL SYSTEM
             </p>
+
+            {/* Bio-Rhythm Environment Indicator */}
+            {isInitialized && (
+              <div className="mt-3 pl-2 border-l border-white/10">
+                <div className="text-[9px] text-cyan-400/60 tracking-widest mb-1">
+                  BIO-RHYTHM
+                </div>
+                <EnvironmentIndicator state={envState} params={envParams} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Status indicator - top right (only before HUD overlay shows) */}
+        {/* Status indicator - top right */}
         {isInitialized && (
           <div className="absolute top-14 right-6 flex items-center gap-2">
             <div
