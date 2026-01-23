@@ -13,14 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NICTIA | Autonomous Audiovisual System",
-  description: "An AI music artist that autonomously generates evolving music and visuals",
-  keywords: ["AI", "music", "generative", "audiovisual", "ambient", "techno"],
+  metadataBase: new URL('https://nictia.xyz'),
+  title: "NICTIA | Autopoietic AI Audio Visualizer",
+  description: "An autonomous AI artist generating eternal ambient techno. Experience the self-listening system.",
+  keywords: ["AI Music", "Generative Audio", "WebGL", "Ambient Techno", "NICTIA", "Tokyo"],
   authors: [{ name: "NICTIA" }],
   openGraph: {
-    title: "NICTIA",
-    description: "Autonomous Audiovisual System",
+    title: "NICTIA System",
+    description: "Generative Audio/Visual experience.",
     type: "website",
+    url: "https://nictia.xyz",
+    siteName: "NICTIA",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
