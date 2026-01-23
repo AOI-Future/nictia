@@ -271,6 +271,44 @@ function OpticalLink({ url }: { url: string }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Social Links Component
+// ═══════════════════════════════════════════════════════════════
+function SocialLinks({ data }: { data: StatusData | null }) {
+  if (!data?.links.social || data.links.social.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Primary Link */}
+      {data.links.primary && (
+        <a
+          href={data.links.primary.url.startsWith('http') ? data.links.primary.url : `https://${data.links.primary.url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 border border-white/20 bg-black/40 backdrop-blur-sm hover:border-cyan-400/60 hover:bg-cyan-400/10 transition-all"
+        >
+          <span className="w-1.5 h-1.5 bg-cyan-400" />
+          <span className="text-[10px] text-white/60 tracking-wider">{data.links.primary.label}</span>
+        </a>
+      )}
+
+      {/* Social Links */}
+      {data.links.social.map((link, index) => (
+        <a
+          key={index}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 border border-white/20 bg-black/40 backdrop-blur-sm hover:border-cyan-400/60 hover:bg-cyan-400/10 transition-all"
+        >
+          <span className="w-1.5 h-1.5 bg-white/40" />
+          <span className="text-[10px] text-white/60 tracking-wider">{link.label}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // System Stats Component
 // ═══════════════════════════════════════════════════════════════
 function SystemStats({ data }: { data: StatusData | null }) {
@@ -341,8 +379,9 @@ export default function OverlayUI({ isActive }: { isActive: boolean }) {
         )}
       </div>
 
-      {/* Bottom Right - Volume Control */}
-      <div className="absolute bottom-6 right-6 pointer-events-auto">
+      {/* Bottom Right - Social Links + Volume Control */}
+      <div className="absolute bottom-6 right-6 pointer-events-auto flex flex-col items-end gap-3">
+        <SocialLinks data={statusData} />
         <VolumeControl />
       </div>
     </div>
