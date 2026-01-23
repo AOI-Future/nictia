@@ -5,25 +5,20 @@
     "cta": {
       "enabled": true,
       "label": "Listen on Spotify",
-      "url": "https://open.spotify.com/artist/nictia"
+      "url": "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6"
     }
   },
   "links": {
     "primary": {
-      "url": "https://open.spotify.com/artist/nictia",
+      "url": "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
       "label": "Spotify"
     },
     "social": [
       {
-        "platform": "X",
-        "url": "https://x.com/nictia_music",
-        "label": "@nictia_music"
+        "platform": "Youtube music",
+        "url": "https://www.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
+        "label": "Youtube music"
       },
-      {
-        "platform": "Instagram",
-        "url": "https://instagram.com/nictia_music",
-        "label": "@nictia_music"
-      }
     ]
   },
   "systemStatus": {
