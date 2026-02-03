@@ -100,7 +100,7 @@ export default function LegalPage() {
           </div>
           <div className="border border-white/10 p-5 space-y-3">
             <p className="text-cyan-400/80 text-xs font-mono">
-              © 2024-2026 AOI Future / Shugo Otsuka. All rights reserved.
+              © 2024-2026 AOI Future / Shugo Nozaki. All rights reserved.
             </p>
             <p className="text-white/50 text-xs font-mono leading-relaxed">
               Works created with substantial human creative contribution using AI as a tool may be eligible for copyright protection under applicable law. AOI Future claims copyright in NICTIA&apos;s musical works to the extent human authorship is present.
