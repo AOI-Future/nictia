@@ -379,10 +379,17 @@ export default function OverlayUI({ isActive }: { isActive: boolean }) {
         )}
       </div>
 
-      {/* Bottom Right - Social Links + Volume Control */}
+      {/* Bottom Right - Social Links + Volume Control + Legal */}
       <div className="absolute bottom-6 right-6 pointer-events-auto flex flex-col items-end gap-3">
         <SocialLinks data={statusData} />
         <VolumeControl />
+        {/* Legal Link */}
+        <a
+          href="/legal"
+          className="flex items-center gap-2 px-3 py-1.5 text-[9px] text-white/30 tracking-widest font-mono hover:text-white/60 transition-colors"
+        >
+          LEGAL
+        </a>
       </div>
     </div>
   );
