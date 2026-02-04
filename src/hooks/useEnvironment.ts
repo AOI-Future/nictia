@@ -71,7 +71,7 @@ function calculateParams(state: EnvironmentState): EnvironmentParams {
   const { timeOfDay, weather } = state;
 
   // Base parameters
-  let params: EnvironmentParams = {
+  const params: EnvironmentParams = {
     bpm: 120,
     reverbWet: 0.5,
     filterFrequency: 2000,

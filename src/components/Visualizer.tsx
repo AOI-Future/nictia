@@ -46,39 +46,51 @@ const defaultEnvParams: EnvironmentParams = {
 // Morphing Particle Field
 // ═══════════════════════════════════════════════════════════════
 
+// Pre-generate particle data with deterministic pseudo-random values
+const PARTICLE_COUNT = 5000;
+const PARTICLE_DATA = (() => {
+  const pos = new Float32Array(PARTICLE_COUNT * 3);
+  const origPos = new Float32Array(PARTICLE_COUNT * 3);
+  const col = new Float32Array(PARTICLE_COUNT * 3);
+
+  // Linear congruential generator for deterministic randomness
+  let seed = 12345;
+  const nextRand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const theta = nextRand() * Math.PI * 2;
+    const phi = Math.acos(2 * nextRand() - 1);
+    const radius = 1.5 + nextRand() * 2.5;
+
+    const x = radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.sin(phi) * Math.sin(theta);
+    const z = radius * Math.cos(phi);
+
+    pos[i * 3] = x;
+    pos[i * 3 + 1] = y;
+    pos[i * 3 + 2] = z;
+
+    origPos[i * 3] = x;
+    origPos[i * 3 + 1] = y;
+    origPos[i * 3 + 2] = z;
+
+    const t = radius / 4;
+    col[i * 3] = 0.2 + t * 0.3;
+    col[i * 3 + 1] = 0.5 + t * 0.3;
+    col[i * 3 + 2] = 1.0;
+  }
+
+  return { positions: pos, originalPositions: origPos, colors: col };
+})();
+
 function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
   const pointsRef = useRef<THREE.Points>(null);
-  const particleCount = 5000;
 
   const [positions, originalPositions, colors] = useMemo(() => {
-    const pos = new Float32Array(particleCount * 3);
-    const origPos = new Float32Array(particleCount * 3);
-    const col = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      const radius = 1.5 + Math.random() * 2.5;
-
-      const x = radius * Math.sin(phi) * Math.cos(theta);
-      const y = radius * Math.sin(phi) * Math.sin(theta);
-      const z = radius * Math.cos(phi);
-
-      pos[i * 3] = x;
-      pos[i * 3 + 1] = y;
-      pos[i * 3 + 2] = z;
-
-      origPos[i * 3] = x;
-      origPos[i * 3 + 1] = y;
-      origPos[i * 3 + 2] = z;
-
-      const t = radius / 4;
-      col[i * 3] = 0.2 + t * 0.3;
-      col[i * 3 + 1] = 0.5 + t * 0.3;
-      col[i * 3 + 2] = 1.0;
-    }
-
-    return [pos, origPos, col];
+    return [PARTICLE_DATA.positions, PARTICLE_DATA.originalPositions, PARTICLE_DATA.colors];
   }, []);
 
   useFrame((state) => {
@@ -99,7 +111,7 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
     // Apply environment-based speed modifier
     const speedMod = envParams.particleSpeed;
 
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
       const ox = originalPositions[i3];
       const oy = originalPositions[i3 + 1];
@@ -235,20 +247,35 @@ function Eye({ envParams }: { envParams: EnvironmentParams }) {
 // Orbiting Fragments
 // ═══════════════════════════════════════════════════════════════
 
+// Pre-generated fragment data (deterministic based on index)
+const FRAGMENT_COUNT = 20;
+const FRAGMENT_DATA = Array.from({ length: FRAGMENT_COUNT }, (_, i) => {
+  // Use deterministic pseudo-random values based on index
+  const seed = (i * 9301 + 49297) % 233280;
+  const rand1 = seed / 233280;
+  const seed2 = (seed * 9301 + 49297) % 233280;
+  const rand2 = seed2 / 233280;
+  const seed3 = (seed2 * 9301 + 49297) % 233280;
+  const rand3 = seed3 / 233280;
+  const seed4 = (seed3 * 9301 + 49297) % 233280;
+  const rand4 = seed4 / 233280;
+  const seed5 = (seed4 * 9301 + 49297) % 233280;
+  const rand5 = seed5 / 233280;
+
+  return {
+    angle: (i / FRAGMENT_COUNT) * Math.PI * 2,
+    radius: 2.2 + rand1 * 1,
+    speed: 0.08 + rand2 * 0.12,
+    yOffset: (rand3 - 0.5) * 1.5,
+    scale: 0.06 + rand4 * 0.08,
+    rotSpeed: rand5 * 2,
+  };
+});
+
 function OrbitingFragments({ envParams }: { envParams: EnvironmentParams }) {
   const groupRef = useRef<THREE.Group>(null);
-  const fragmentCount = 20;
 
-  const fragments = useMemo(() => {
-    return Array.from({ length: fragmentCount }, (_, i) => ({
-      angle: (i / fragmentCount) * Math.PI * 2,
-      radius: 2.2 + Math.random() * 1,
-      speed: 0.08 + Math.random() * 0.12,
-      yOffset: (Math.random() - 0.5) * 1.5,
-      scale: 0.06 + Math.random() * 0.08,
-      rotSpeed: Math.random() * 2,
-    }));
-  }, []);
+  const fragments = useMemo(() => FRAGMENT_DATA, []);
 
   useFrame((state) => {
     if (!groupRef.current) return;

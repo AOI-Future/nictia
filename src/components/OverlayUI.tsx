@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import QRCode from "react-qr-code";
 import {
   setVolume,
-  getVolume,
   setMuted,
-  getMuted,
 } from "@/utils/sound";
 
 // Types for status.json
@@ -119,35 +117,35 @@ function VolumeControl() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Typewriter Text Component
+// Typewriter Text Inner Component (resets on key change)
 // ═══════════════════════════════════════════════════════════════
-function TypewriterText({ text, speed = 30 }: { text: string; speed?: number }) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
+function TypewriterTextInner({ text, speed }: { text: string; speed: number }) {
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    setDisplayedText("");
-    setCurrentIndex(0);
-  }, [text]);
-
-  useEffect(() => {
-    if (currentIndex < text.length) {
+    if (index < text.length) {
       const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
+        setIndex(i => i + 1);
       }, speed);
       return () => clearTimeout(timeout);
     }
-  }, [currentIndex, text, speed]);
+  }, [index, text.length, speed]);
+
+  const displayedText = text.slice(0, index);
 
   return (
     <span>
       {displayedText}
-      {currentIndex < text.length && (
+      {index < text.length && (
         <span className="inline-block w-2 h-4 bg-cyan-400/80 ml-0.5 animate-pulse" />
       )}
     </span>
   );
+}
+
+// Wrapper that uses key to reset inner component when text changes
+function TypewriterText({ text, speed = 30 }: { text: string; speed?: number }) {
+  return <TypewriterTextInner key={text} text={text} speed={speed} />;
 }
 
 // ═══════════════════════════════════════════════════════════════
