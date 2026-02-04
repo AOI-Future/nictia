@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "NICTIA | Autopoietic AI Audio Visualizer",
   description: "An autonomous AI artist generating eternal ambient techno. Experience the self-listening system.",
   keywords: ["AI Music", "Generative Audio", "WebGL", "Ambient Techno", "NICTIA", "Tokyo"],
-  authors: [{ name: "NICTIA" }, { name: "AOI Future" }, { name: "Shugo Otsuka" }],
+  authors: [{ name: "NICTIA" }, { name: "AOI Future" }, { name: "Shugo Nozaki" }],
   openGraph: {
     title: "NICTIA System",
     description: "Generative Audio/Visual experience.",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   other: {
-    "copyright": "© 2024-2026 AOI Future / Shugo Otsuka",
+    "copyright": "© 2024-2026 AOI Future / Shugo Nozaki",
     "ai-generated": "partial",
     "human-contribution": "substantial",
   },
