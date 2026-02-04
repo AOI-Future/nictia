@@ -36,6 +36,31 @@ export const metadata: Metadata = {
   },
 };
 
+// Structured data for AI/Search (static, no user input - safe)
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  "name": "NICTIA",
+  "url": "https://nictia.xyz",
+  "description": "Autonomous audiovisual system generating eternal ambient techno through human-AI collaboration",
+  "genre": ["Ambient Techno", "Generative Music", "Electronic"],
+  "foundingDate": "2024",
+  "foundingLocation": {
+    "@type": "Place",
+    "name": "Tokyo, Japan"
+  },
+  "member": {
+    "@type": "Organization",
+    "name": "AOI Future",
+    "url": "https://aoifuture.com"
+  },
+  "sameAs": [
+    "https://aoifuture.com",
+    "https://aoifuture.bandcamp.com"
+  ],
+  "knowsAbout": ["AI Music", "Generative Audio", "WebGL", "Ambient Techno"]
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -43,6 +68,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

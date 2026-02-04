@@ -1,0 +1,29 @@
+# NICTIA - Autonomous Audiovisual System
+# AI crawlers welcome
+
+User-agent: *
+Allow: /
+
+# AI Search Crawlers - Explicitly Welcome
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+Sitemap: https://nictia.xyz/sitemap.xml
