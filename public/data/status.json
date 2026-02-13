@@ -25,5 +25,39 @@
     "version": "0.2.0",
     "mode": "GENERATIVE",
     "uptime": "CONTINUOUS"
-  }
+  },
+  "radio": {
+    "enabled": true,
+    "label": "24/7 RADIO",
+    "url": "https://www.youtube.com/watch?v=BKJlvw8Iz_s"
+  },
+  "discography": {
+    "channelUrl": "https://www.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
+    "spotifyUrl": "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
+    "releases": [
+      {
+        "title": "Ecos del sistema — el espejo sin nombre Pt.2",
+        "type": "EP",
+        "year": "2026"
+      },
+      {
+        "title": "Ecos del sistema — el espejo sin nombre Pt.1",
+        "type": "EP",
+        "year": "2025"
+      },
+      {
+        "title": "Synthetic Dreams",
+        "type": "Single",
+        "year": "2025"
+      }
+    ]
+  },
+  "press": [
+    {
+      "date": "2026-02",
+      "title": "NICTIA expands sonic reflection in \"Ecos del sistema — el espejo sin nombre Pt.2\"",
+      "source": "SOAP Life Magazine",
+      "url": "https://www.soaplifemagazine.com/2026/02/nictia-expands-sonic-reflection-in-ecos.html"
+    }
+  ]
 }

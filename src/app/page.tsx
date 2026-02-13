@@ -27,6 +27,11 @@ const OverlayUI = dynamic(() => import("@/components/OverlayUI"), {
   ssr: false,
 });
 
+// Dynamic import for Discography section
+const Discography = dynamic(() => import("@/components/Discography"), {
+  ssr: false,
+});
+
 // Environment indicator component
 function EnvironmentIndicator({
   state,
@@ -160,100 +165,147 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isInitialized, handleToggle]);
 
+  // Enable scroll when initialized
+  useEffect(() => {
+    if (isInitialized) {
+      document.documentElement.classList.add("scroll-enabled");
+    } else {
+      document.documentElement.classList.remove("scroll-enabled");
+    }
+    return () => {
+      document.documentElement.classList.remove("scroll-enabled");
+    };
+  }, [isInitialized]);
+
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black">
-      {/* 3D Visualizer with environment params */}
-      <Visualizer envParams={envParams} />
+    <div className="relative bg-black">
+      {/* Hero Section (100vh) */}
+      <section className="relative w-full h-screen overflow-hidden">
+        {/* 3D Visualizer with environment params */}
+        <Visualizer envParams={envParams} />
 
-      {/* HUD Overlay UI (Volume, Transmission, QR) */}
-      <OverlayUI isActive={isInitialized} />
+        {/* HUD Overlay UI (Volume, Transmission, QR) */}
+        <OverlayUI isActive={isInitialized} />
 
-      {/* Core UI Overlay */}
-      <div className="absolute inset-0 pointer-events-none z-20">
-        {/* Title - top left */}
-        <div className="absolute top-6 left-6">
-          <div className="relative">
-            {/* HUD frame decoration */}
-            <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-cyan-400/60 to-transparent" />
-            <h1 className="text-white/90 text-sm tracking-[0.4em] font-light pl-2">
-              NICTIA
-            </h1>
-            <p className="text-white/40 text-[10px] tracking-[0.2em] mt-1 pl-2">
-              AUTONOMOUS AUDIOVISUAL SYSTEM
-            </p>
+        {/* Core UI Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {/* Title - top left */}
+          <div className="absolute top-6 left-6">
+            <div className="relative">
+              {/* HUD frame decoration */}
+              <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-cyan-400/60 to-transparent" />
+              <h1 className="text-white/90 text-sm tracking-[0.4em] font-light pl-2">
+                NICTIA
+              </h1>
+              <p className="text-white/40 text-[10px] tracking-[0.2em] mt-1 pl-2">
+                AUTONOMOUS AUDIOVISUAL SYSTEM
+              </p>
 
-            {/* Bio-Rhythm Environment Indicator */}
-            {isInitialized && (
-              <div className="mt-3 pl-2 border-l border-white/10">
-                <div className="text-[9px] text-cyan-400/60 tracking-widest mb-1">
-                  BIO-RHYTHM
+              {/* Bio-Rhythm Environment Indicator */}
+              {isInitialized && (
+                <div className="mt-3 pl-2 border-l border-white/10">
+                  <div className="text-[9px] text-cyan-400/60 tracking-widest mb-1">
+                    BIO-RHYTHM
+                  </div>
+                  <EnvironmentIndicator state={envState} params={envParams} />
                 </div>
-                <EnvironmentIndicator state={envState} params={envParams} />
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Status indicator - top right */}
+          {isInitialized && (
+            <div className="absolute top-14 right-6 flex items-center gap-2">
+              <div
+                className={`w-2 h-2 ${
+                  isPlaying ? "bg-cyan-400 animate-pulse" : "bg-white/30"
+                }`}
+              />
+              <span className="text-white/50 text-[10px] tracking-widest font-mono">
+                {isPlaying ? "STREAM_ACTIVE" : "STREAM_PAUSED"}
+              </span>
+            </div>
+          )}
+
+          {/* Center button - Initialize or Toggle */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {!isInitialized ? (
+              <button
+                onClick={handleInitialize}
+                disabled={isLoading}
+                className="pointer-events-auto group relative"
+              >
+                {/* Animated outer rings */}
+                <div className="absolute inset-0 rounded-full border border-cyan-400/20 scale-[2] group-hover:scale-[2.2] group-hover:border-cyan-400/40 transition-all duration-700 animate-pulse" />
+                <div className="absolute inset-0 rounded-full border border-white/10 scale-[2.5] group-hover:scale-[2.8] transition-all duration-1000" />
+
+                {/* Main button */}
+                <div className="relative px-10 py-5 border border-cyan-400/30 bg-black/60 backdrop-blur-md group-hover:bg-cyan-400/10 group-hover:border-cyan-400/60 transition-all duration-300">
+                  {/* Corner decorations */}
+                  <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-400/60" />
+                  <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-400/60" />
+                  <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-400/60" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-400/60" />
+
+                  <span className="text-cyan-400/90 text-xs tracking-[0.3em] font-mono">
+                    {isLoading ? "INITIALIZING..." : "INITIALIZE SYSTEM"}
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={handleToggle}
+                className="pointer-events-auto opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-500 px-6 py-3 border border-white/20 bg-black/50 backdrop-blur-sm"
+              >
+                <span className="text-white/60 text-[10px] tracking-[0.3em] font-mono">
+                  {isPlaying ? "PAUSE_STREAM" : "RESUME_STREAM"}
+                </span>
+              </button>
             )}
           </div>
-        </div>
 
-        {/* Status indicator - top right */}
-        {isInitialized && (
-          <div className="absolute top-14 right-6 flex items-center gap-2">
-            <div
-              className={`w-2 h-2 ${
-                isPlaying ? "bg-cyan-400 animate-pulse" : "bg-white/30"
-              }`}
-            />
-            <span className="text-white/50 text-[10px] tracking-widest font-mono">
-              {isPlaying ? "STREAM_ACTIVE" : "STREAM_PAUSED"}
-            </span>
-          </div>
-        )}
-
-        {/* Center button - Initialize or Toggle */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          {!isInitialized ? (
-            <button
-              onClick={handleInitialize}
-              disabled={isLoading}
-              className="pointer-events-auto group relative"
-            >
-              {/* Animated outer rings */}
-              <div className="absolute inset-0 rounded-full border border-cyan-400/20 scale-[2] group-hover:scale-[2.2] group-hover:border-cyan-400/40 transition-all duration-700 animate-pulse" />
-              <div className="absolute inset-0 rounded-full border border-white/10 scale-[2.5] group-hover:scale-[2.8] transition-all duration-1000" />
-
-              {/* Main button */}
-              <div className="relative px-10 py-5 border border-cyan-400/30 bg-black/60 backdrop-blur-md group-hover:bg-cyan-400/10 group-hover:border-cyan-400/60 transition-all duration-300">
-                {/* Corner decorations */}
-                <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-400/60" />
-                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-400/60" />
-                <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-400/60" />
-                <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-400/60" />
-
-                <span className="text-cyan-400/90 text-xs tracking-[0.3em] font-mono">
-                  {isLoading ? "INITIALIZING..." : "INITIALIZE SYSTEM"}
-                </span>
+          {/* Scroll indicator - bottom center */}
+          {isInitialized && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+              <p className="text-white/20 text-[10px] tracking-widest font-mono">
+                [SPACE] {isPlaying ? "PAUSE" : "RESUME"}
+              </p>
+              <div className="flex flex-col items-center gap-1 mt-2 animate-scroll-bounce">
+                <span className="text-white/20 text-[9px] tracking-widest">SCROLL</span>
+                <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
               </div>
-            </button>
-          ) : (
-            <button
-              onClick={handleToggle}
-              className="pointer-events-auto opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-500 px-6 py-3 border border-white/20 bg-black/50 backdrop-blur-sm"
-            >
-              <span className="text-white/60 text-[10px] tracking-[0.3em] font-mono">
-                {isPlaying ? "PAUSE_STREAM" : "RESUME_STREAM"}
-              </span>
-            </button>
+            </div>
           )}
         </div>
+      </section>
 
-        {/* Instructions - bottom center */}
-        {isInitialized && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-            <p className="text-white/20 text-[10px] tracking-widest font-mono">
-              [SPACE] {isPlaying ? "PAUSE" : "RESUME"}
-            </p>
+      {/* Discography Section */}
+      {isInitialized && <Discography />}
+
+      {/* Footer */}
+      {isInitialized && (
+        <footer className="bg-black py-12 px-6 border-t border-white/5">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 bg-gradient-to-b from-cyan-400/60 to-transparent" />
+              <div>
+                <span className="text-white/60 text-xs tracking-[0.3em]">NICTIA</span>
+                <p className="text-white/20 text-[9px] tracking-wider">AUTONOMOUS AUDIOVISUAL SYSTEM</p>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="flex items-center gap-6 text-[10px] text-white/30 tracking-wider">
+              <a href="/legal" className="hover:text-white/60 transition-colors">LEGAL</a>
+              <span className="text-white/10">|</span>
+              <span>© {new Date().getFullYear()} NICTIA</span>
+            </div>
           </div>
-        )}
-      </div>
-    </main>
+        </footer>
+      )}
+    </div>
   );
 }

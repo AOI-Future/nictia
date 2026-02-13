@@ -6,8 +6,17 @@ import {
   setVolume,
   setMuted,
 } from "@/utils/sound";
+import RadioBanner from "./RadioBanner";
+import News from "./News";
 
 // Types for status.json
+interface PressItem {
+  date: string;
+  title: string;
+  source: string;
+  url: string;
+}
+
 interface StatusData {
   transmission: {
     enabled: boolean;
@@ -34,6 +43,12 @@ interface StatusData {
     mode: string;
     uptime: string;
   };
+  radio?: {
+    enabled: boolean;
+    label: string;
+    url: string;
+  };
+  press?: PressItem[];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -365,8 +380,15 @@ export default function OverlayUI({ isActive }: { isActive: boolean }) {
         <SystemStats data={statusData} />
       </div>
 
-      {/* Bottom Left - Transmission Terminal */}
+      {/* Bottom Left - Press + Transmission Terminal */}
       <div className="absolute bottom-6 left-6 pointer-events-auto">
+        {/* Press Section above Transmission */}
+        {statusData?.press && statusData.press.length > 0 && (
+          <div className="mb-3">
+            <News data={statusData.press} />
+          </div>
+        )}
+
         <TransmissionTerminal data={statusData} />
 
         {/* QR Code below terminal */}
@@ -377,10 +399,19 @@ export default function OverlayUI({ isActive }: { isActive: boolean }) {
         )}
       </div>
 
-      {/* Bottom Right - Social Links + Volume Control + Legal */}
+      {/* Bottom Right - Social Links + Volume Control + Radio Banner + Legal */}
       <div className="absolute bottom-6 right-6 pointer-events-auto flex flex-col items-end gap-3">
         <SocialLinks data={statusData} />
         <VolumeControl />
+
+        {/* Radio Banner */}
+        {statusData?.radio?.enabled && (
+          <RadioBanner
+            url={statusData.radio.url}
+            label={statusData.radio.label}
+          />
+        )}
+
         {/* Legal Link */}
         <a
           href="/legal"
