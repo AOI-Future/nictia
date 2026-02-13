@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useRef, useMemo, useState, useEffect } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import {
   EffectComposer,
@@ -12,8 +12,17 @@ import {
 } from "@react-three/postprocessing";
 import { GlitchMode } from "postprocessing";
 import * as THREE from "three";
+import { TextureLoader } from "three";
 import { getFrequencyData, getIsPlaying } from "@/utils/sound";
 import type { EnvironmentParams } from "@/hooks/useEnvironment";
+
+// Types for discography
+interface Release {
+  title: string;
+  type: string;
+  year: string;
+  cover: string;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -21,10 +30,12 @@ import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
 interface VisualizerProps {
   envParams?: EnvironmentParams;
+  covers?: string[];
 }
 
 interface SceneProps {
   envParams: EnvironmentParams;
+  covers: string[];
 }
 
 // Default environment params
@@ -407,41 +418,43 @@ function Eye({ envParams }: { envParams: EnvironmentParams }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Orbiting Fragments
+// Orbiting Album Covers
 // ═══════════════════════════════════════════════════════════════
 
-// Pre-generated fragment data (deterministic based on index)
-const FRAGMENT_COUNT = 20;
-const FRAGMENT_DATA = Array.from({ length: FRAGMENT_COUNT }, (_, i) => {
-  // Use deterministic pseudo-random values based on index
-  const seed = (i * 9301 + 49297) % 233280;
-  const rand1 = seed / 233280;
-  const seed2 = (seed * 9301 + 49297) % 233280;
-  const rand2 = seed2 / 233280;
-  const seed3 = (seed2 * 9301 + 49297) % 233280;
-  const rand3 = seed3 / 233280;
-  const seed4 = (seed3 * 9301 + 49297) % 233280;
-  const rand4 = seed4 / 233280;
-  const seed5 = (seed4 * 9301 + 49297) % 233280;
-  const rand5 = seed5 / 233280;
+// Single album cover component with texture
+function AlbumCover({
+  coverUrl,
+  index,
+  total,
+  envParams
+}: {
+  coverUrl: string;
+  index: number;
+  total: number;
+  envParams: EnvironmentParams;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const texture = useLoader(TextureLoader, coverUrl);
 
-  return {
-    angle: (i / FRAGMENT_COUNT) * Math.PI * 2,
-    radius: 2.2 + rand1 * 1,
-    speed: 0.08 + rand2 * 0.12,
-    yOffset: (rand3 - 0.5) * 1.5,
-    scale: 0.06 + rand4 * 0.08,
-    rotSpeed: rand5 * 2,
-  };
-});
+  // Pre-calculate orbit parameters based on index
+  const orbitData = useMemo(() => {
+    const seed = (index * 9301 + 49297) % 233280;
+    const rand1 = seed / 233280;
+    const seed2 = (seed * 9301 + 49297) % 233280;
+    const rand2 = seed2 / 233280;
+    const seed3 = (seed2 * 9301 + 49297) % 233280;
+    const rand3 = seed3 / 233280;
 
-function OrbitingFragments({ envParams }: { envParams: EnvironmentParams }) {
-  const groupRef = useRef<THREE.Group>(null);
-
-  const fragments = useMemo(() => FRAGMENT_DATA, []);
+    return {
+      angle: (index / total) * Math.PI * 2,
+      radius: 2.5 + rand1 * 0.8,
+      speed: 0.06 + rand2 * 0.08,
+      yOffset: (rand3 - 0.5) * 1.2,
+    };
+  }, [index, total]);
 
   useFrame((state) => {
-    if (!groupRef.current) return;
+    if (!meshRef.current) return;
 
     const time = state.clock.elapsedTime;
     const speedMod = envParams.particleSpeed;
@@ -449,41 +462,132 @@ function OrbitingFragments({ envParams }: { envParams: EnvironmentParams }) {
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
       const freqData = getFrequencyData();
-      audioIntensity =
-        0.3 +
-        (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
     }
 
-    groupRef.current.children.forEach((child, i) => {
-      const fragment = fragments[i];
-      const speed = fragment.speed * (1 + audioIntensity * 0.5) * speedMod;
-      const angle = fragment.angle + time * speed;
+    const speed = orbitData.speed * (1 + audioIntensity * 0.3) * speedMod;
+    const angle = orbitData.angle + time * speed;
 
-      child.position.x = Math.cos(angle) * fragment.radius;
-      child.position.z = Math.sin(angle) * fragment.radius;
-      child.position.y =
-        fragment.yOffset + Math.sin(time * 0.8 * speedMod + i) * 0.4 * audioIntensity;
+    meshRef.current.position.x = Math.cos(angle) * orbitData.radius;
+    meshRef.current.position.z = Math.sin(angle) * orbitData.radius;
+    meshRef.current.position.y = orbitData.yOffset + Math.sin(time * 0.5 * speedMod + index) * 0.3 * audioIntensity;
 
-      child.rotation.x = time * fragment.rotSpeed * speedMod;
-      child.rotation.y = time * fragment.rotSpeed * 0.7 * speedMod;
+    // Face camera (billboard effect) with subtle tilt
+    meshRef.current.rotation.y = -angle + Math.PI;
+    meshRef.current.rotation.x = Math.sin(time * 0.3 + index) * 0.1;
 
-      const scale = fragment.scale * (1 + audioIntensity * 0.3);
-      child.scale.setScalar(scale);
-    });
+    // Pulse scale with audio
+    const baseScale = 0.35 + audioIntensity * 0.1;
+    meshRef.current.scale.setScalar(baseScale);
   });
 
   return (
-    <group ref={groupRef}>
-      {fragments.map((fragment, i) => (
-        <mesh key={i} scale={fragment.scale}>
-          <octahedronGeometry args={[1, 0]} />
-          <meshBasicMaterial
-            color="#4a9eff"
-            transparent
-            opacity={0.9}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
+    <mesh ref={meshRef}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        opacity={0.9}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+// Fallback octahedron for additional orbiting elements
+function OrbitingFragment({
+  index,
+  total,
+  envParams
+}: {
+  index: number;
+  total: number;
+  envParams: EnvironmentParams;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  const orbitData = useMemo(() => {
+    const seed = ((index + 100) * 9301 + 49297) % 233280;
+    const rand1 = seed / 233280;
+    const seed2 = (seed * 9301 + 49297) % 233280;
+    const rand2 = seed2 / 233280;
+    const seed3 = (seed2 * 9301 + 49297) % 233280;
+    const rand3 = seed3 / 233280;
+    const seed4 = (seed3 * 9301 + 49297) % 233280;
+    const rand4 = seed4 / 233280;
+
+    return {
+      angle: (index / total) * Math.PI * 2 + Math.PI / total,
+      radius: 2.8 + rand1 * 1.2,
+      speed: 0.05 + rand2 * 0.1,
+      yOffset: (rand3 - 0.5) * 1.8,
+      rotSpeed: rand4 * 2,
+    };
+  }, [index, total]);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+
+    const time = state.clock.elapsedTime;
+    const speedMod = envParams.particleSpeed;
+
+    let audioIntensity = 0.3;
+    if (getIsPlaying()) {
+      const freqData = getFrequencyData();
+      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+    }
+
+    const speed = orbitData.speed * (1 + audioIntensity * 0.5) * speedMod;
+    const angle = orbitData.angle + time * speed;
+
+    meshRef.current.position.x = Math.cos(angle) * orbitData.radius;
+    meshRef.current.position.z = Math.sin(angle) * orbitData.radius;
+    meshRef.current.position.y = orbitData.yOffset + Math.sin(time * 0.8 * speedMod + index) * 0.4 * audioIntensity;
+
+    meshRef.current.rotation.x = time * orbitData.rotSpeed * speedMod;
+    meshRef.current.rotation.y = time * orbitData.rotSpeed * 0.7 * speedMod;
+
+    const scale = 0.06 + audioIntensity * 0.03;
+    meshRef.current.scale.setScalar(scale);
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <octahedronGeometry args={[1, 0]} />
+      <meshBasicMaterial
+        color="#4a9eff"
+        transparent
+        opacity={0.7}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
+function OrbitingCovers({ envParams, covers }: { envParams: EnvironmentParams; covers: string[] }) {
+  const fragmentCount = 12; // Additional decorative fragments
+
+  return (
+    <group>
+      {/* Album covers */}
+      {covers.map((cover, i) => (
+        <AlbumCover
+          key={`cover-${i}`}
+          coverUrl={cover}
+          index={i}
+          total={covers.length}
+          envParams={envParams}
+        />
+      ))}
+
+      {/* Decorative fragments */}
+      {Array.from({ length: fragmentCount }).map((_, i) => (
+        <OrbitingFragment
+          key={`fragment-${i}`}
+          index={i}
+          total={fragmentCount}
+          envParams={envParams}
+        />
       ))}
     </group>
   );
@@ -612,7 +716,7 @@ function Effects({ envParams }: { envParams: EnvironmentParams }) {
 // Main Scene
 // ═══════════════════════════════════════════════════════════════
 
-function Scene({ envParams }: SceneProps) {
+function Scene({ envParams, covers }: SceneProps) {
   return (
     <>
       <color attach="background" args={[envParams.backgroundColor]} />
@@ -624,7 +728,12 @@ function Scene({ envParams }: SceneProps) {
 
       <Eye envParams={envParams} />
       <ParticleField envParams={envParams} />
-      <OrbitingFragments envParams={envParams} />
+
+      {/* Album covers with Suspense for texture loading */}
+      <Suspense fallback={null}>
+        <OrbitingCovers envParams={envParams} covers={covers} />
+      </Suspense>
+
       <FloatingRings envParams={envParams} />
 
       <Effects envParams={envParams} />
@@ -636,8 +745,26 @@ function Scene({ envParams }: SceneProps) {
 // Exported Visualizer Component
 // ═══════════════════════════════════════════════════════════════
 
-export default function Visualizer({ envParams }: VisualizerProps) {
+export default function Visualizer({ envParams, covers = [] }: VisualizerProps) {
   const params = envParams || defaultEnvParams;
+  const [loadedCovers, setLoadedCovers] = useState<string[]>(covers);
+
+  // Fetch covers from discography if not provided
+  useEffect(() => {
+    if (covers.length === 0) {
+      fetch("/data/status.json")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.discography?.releases) {
+            const coverUrls = data.discography.releases
+              .map((r: Release) => r.cover)
+              .filter(Boolean);
+            setLoadedCovers(coverUrls);
+          }
+        })
+        .catch((err) => console.error("Failed to load covers:", err));
+    }
+  }, [covers]);
 
   return (
     <div className="fixed inset-0 w-full h-full">
@@ -650,7 +777,7 @@ export default function Visualizer({ envParams }: VisualizerProps) {
         }}
         dpr={[1, 2]}
       >
-        <Scene envParams={params} />
+        <Scene envParams={params} covers={loadedCovers} />
       </Canvas>
     </div>
   );

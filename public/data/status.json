@@ -38,17 +38,20 @@
       {
         "title": "Ecos del sistema — el espejo sin nombre Pt.2",
         "type": "EP",
-        "year": "2026"
+        "year": "2026",
+        "cover": "/covers/ecos-pt2.svg"
       },
       {
         "title": "Ecos del sistema — el espejo sin nombre Pt.1",
         "type": "EP",
-        "year": "2025"
+        "year": "2025",
+        "cover": "/covers/ecos-pt1.svg"
       },
       {
         "title": "Synthetic Dreams",
         "type": "Single",
-        "year": "2025"
+        "year": "2025",
+        "cover": "/covers/synthetic-dreams.svg"
       }
     ]
   },
