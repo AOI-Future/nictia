@@ -36,6 +36,7 @@ interface VisualizerProps {
 interface SceneProps {
   envParams: EnvironmentParams;
   covers: string[];
+  showCovers: boolean;
 }
 
 // Default environment params
@@ -434,7 +435,9 @@ function AlbumCover({
   envParams: EnvironmentParams;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
   const texture = useLoader(TextureLoader, coverUrl);
+  const fadeProgress = useRef(0);
 
   // Pre-calculate orbit parameters based on index
   const orbitData = useMemo(() => {
@@ -450,14 +453,23 @@ function AlbumCover({
       radius: 2.5 + rand1 * 0.8,
       speed: 0.06 + rand2 * 0.08,
       yOffset: (rand3 - 0.5) * 1.2,
+      fadeDelay: index * 0.2, // Stagger fade-in per cover
     };
   }, [index, total]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
 
     const time = state.clock.elapsedTime;
     const speedMod = envParams.particleSpeed;
+
+    // Smooth fade-in animation
+    if (fadeProgress.current < 1) {
+      fadeProgress.current = Math.min(1, fadeProgress.current + delta * 0.8);
+      if (materialRef.current) {
+        materialRef.current.opacity = fadeProgress.current * 0.9;
+      }
+    }
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
@@ -476,8 +488,8 @@ function AlbumCover({
     meshRef.current.rotation.y = -angle + Math.PI;
     meshRef.current.rotation.x = Math.sin(time * 0.3 + index) * 0.1;
 
-    // Pulse scale with audio
-    const baseScale = 0.35 + audioIntensity * 0.1;
+    // Pulse scale with audio + fade-in scale
+    const baseScale = (0.35 + audioIntensity * 0.1) * fadeProgress.current;
     meshRef.current.scale.setScalar(baseScale);
   });
 
@@ -485,9 +497,10 @@ function AlbumCover({
     <mesh ref={meshRef}>
       <planeGeometry args={[1, 1]} />
       <meshBasicMaterial
+        ref={materialRef}
         map={texture}
         transparent
-        opacity={0.9}
+        opacity={0}
         side={THREE.DoubleSide}
       />
     </mesh>
@@ -564,13 +577,13 @@ function OrbitingFragment({
   );
 }
 
-function OrbitingCovers({ envParams, covers }: { envParams: EnvironmentParams; covers: string[] }) {
+function OrbitingCovers({ envParams, covers, showCovers }: { envParams: EnvironmentParams; covers: string[]; showCovers: boolean }) {
   const fragmentCount = 12; // Additional decorative fragments
 
   return (
     <group>
-      {/* Album covers */}
-      {covers.map((cover, i) => (
+      {/* Album covers - fade in after delay */}
+      {showCovers && covers.map((cover, i) => (
         <AlbumCover
           key={`cover-${i}`}
           coverUrl={cover}
@@ -580,7 +593,7 @@ function OrbitingCovers({ envParams, covers }: { envParams: EnvironmentParams; c
         />
       ))}
 
-      {/* Decorative fragments */}
+      {/* Decorative fragments - always visible */}
       {Array.from({ length: fragmentCount }).map((_, i) => (
         <OrbitingFragment
           key={`fragment-${i}`}
@@ -716,7 +729,7 @@ function Effects({ envParams }: { envParams: EnvironmentParams }) {
 // Main Scene
 // ═══════════════════════════════════════════════════════════════
 
-function Scene({ envParams, covers }: SceneProps) {
+function Scene({ envParams, covers, showCovers }: SceneProps) {
   return (
     <>
       <color attach="background" args={[envParams.backgroundColor]} />
@@ -731,7 +744,7 @@ function Scene({ envParams, covers }: SceneProps) {
 
       {/* Album covers with Suspense for texture loading */}
       <Suspense fallback={null}>
-        <OrbitingCovers envParams={envParams} covers={covers} />
+        <OrbitingCovers envParams={envParams} covers={covers} showCovers={showCovers} />
       </Suspense>
 
       <FloatingRings envParams={envParams} />
@@ -748,6 +761,7 @@ function Scene({ envParams, covers }: SceneProps) {
 export default function Visualizer({ envParams, covers = [] }: VisualizerProps) {
   const params = envParams || defaultEnvParams;
   const [loadedCovers, setLoadedCovers] = useState<string[]>(covers);
+  const [showCovers, setShowCovers] = useState(false);
 
   // Fetch covers from discography if not provided
   useEffect(() => {
@@ -766,6 +780,14 @@ export default function Visualizer({ envParams, covers = [] }: VisualizerProps) 
     }
   }, [covers]);
 
+  // Delay showing covers for smooth initial load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowCovers(true);
+    }, 1500); // Show covers after 1.5s
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="fixed inset-0 w-full h-full">
       <Canvas
@@ -777,7 +799,7 @@ export default function Visualizer({ envParams, covers = [] }: VisualizerProps) 
         }}
         dpr={[1, 2]}
       >
-        <Scene envParams={params} covers={loadedCovers} />
+        <Scene envParams={params} covers={loadedCovers} showCovers={showCovers} />
       </Canvas>
     </div>
   );
