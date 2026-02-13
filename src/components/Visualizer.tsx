@@ -40,7 +40,74 @@ const defaultEnvParams: EnvironmentParams = {
   noiseIntensity: 0,
   glitchIntensity: 0,
   waveformType: "sine",
+  // Lenia ecosystem defaults
+  neighborRadius: 1.0,
+  attractionForce: 0.5,
+  repulsionForce: 0.5,
+  cohesionStrength: 0.5,
+  separationStrength: 0.5,
+  activityThreshold: 0.5,
+  solarIntensity: 0.5,
 };
+
+// ═══════════════════════════════════════════════════════════════
+// Spatial Hash Grid for efficient neighbor lookup
+// ═══════════════════════════════════════════════════════════════
+
+class SpatialHashGrid {
+  private cellSize: number;
+  private grid: Map<string, number[]>;
+
+  constructor(cellSize: number = 0.5) {
+    this.cellSize = cellSize;
+    this.grid = new Map();
+  }
+
+  private hash(x: number, y: number, z: number): string {
+    const cx = Math.floor(x / this.cellSize);
+    const cy = Math.floor(y / this.cellSize);
+    const cz = Math.floor(z / this.cellSize);
+    return `${cx},${cy},${cz}`;
+  }
+
+  clear() {
+    this.grid.clear();
+  }
+
+  insert(index: number, x: number, y: number, z: number) {
+    const key = this.hash(x, y, z);
+    if (!this.grid.has(key)) {
+      this.grid.set(key, []);
+    }
+    this.grid.get(key)!.push(index);
+  }
+
+  getNeighbors(x: number, y: number, z: number, radius: number): number[] {
+    const neighbors: number[] = [];
+    const cellRadius = Math.ceil(radius / this.cellSize);
+
+    const cx = Math.floor(x / this.cellSize);
+    const cy = Math.floor(y / this.cellSize);
+    const cz = Math.floor(z / this.cellSize);
+
+    for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+      for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+        for (let dz = -cellRadius; dz <= cellRadius; dz++) {
+          const key = `${cx + dx},${cy + dy},${cz + dz}`;
+          const cell = this.grid.get(key);
+          if (cell) {
+            neighbors.push(...cell);
+          }
+        }
+      }
+    }
+
+    return neighbors;
+  }
+}
+
+// Singleton spatial grid instance
+const spatialGrid = new SpatialHashGrid(0.6);
 
 // ═══════════════════════════════════════════════════════════════
 // Morphing Particle Field
@@ -86,8 +153,12 @@ const PARTICLE_DATA = (() => {
   return { positions: pos, originalPositions: origPos, colors: col };
 })();
 
+// Velocity buffer for Lenia dynamics
+const velocities = new Float32Array(PARTICLE_COUNT * 3);
+
 function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
   const pointsRef = useRef<THREE.Points>(null);
+  const frameCount = useRef(0);
 
   const [positions, originalPositions, colors] = useMemo(() => {
     return [PARTICLE_DATA.positions, PARTICLE_DATA.originalPositions, PARTICLE_DATA.colors];
@@ -111,25 +182,117 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
     // Apply environment-based speed modifier
     const speedMod = envParams.particleSpeed;
 
+    // Lenia ecosystem parameters
+    const {
+      neighborRadius,
+      attractionForce,
+      repulsionForce,
+      cohesionStrength,
+      separationStrength,
+      activityThreshold,
+      solarIntensity,
+    } = envParams;
+
+    // Update spatial hash grid every 3 frames for performance
+    frameCount.current++;
+    const updateLenia = frameCount.current % 3 === 0;
+
+    if (updateLenia) {
+      spatialGrid.clear();
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const i3 = i * 3;
+        spatialGrid.insert(i, positions[i3], positions[i3 + 1], positions[i3 + 2]);
+      }
+    }
+
+    // Sample particles for Lenia interactions (every 5th particle for performance)
+    const sampleRate = 5;
+    const interactionStrength = 0.015 * (0.5 + solarIntensity * 0.5);
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
       const ox = originalPositions[i3];
       const oy = originalPositions[i3 + 1];
       const oz = originalPositions[i3 + 2];
 
+      // Current position
+      const px = positions[i3];
+      const py = positions[i3 + 1];
+      const pz = positions[i3 + 2];
+
+      // Base organic movement (original behavior)
       const noiseScale = 0.2 + audioIntensity * 0.8;
       const speed = (0.3 + audioIntensity * 0.5) * speedMod;
       const nx = Math.sin(time * speed + ox * 0.8 + oy * 0.3) * noiseScale;
-      const ny =
-        Math.cos(time * speed * 0.8 + oy * 0.8 + oz * 0.3) * noiseScale;
-      const nz =
-        Math.sin(time * speed * 0.6 + oz * 0.8 + ox * 0.3) * noiseScale;
+      const ny = Math.cos(time * speed * 0.8 + oy * 0.8 + oz * 0.3) * noiseScale;
+      const nz = Math.sin(time * speed * 0.6 + oz * 0.8 + ox * 0.3) * noiseScale;
 
       const breathe = 1 + Math.sin(time * 0.5 * speedMod) * 0.15 * audioIntensity;
 
-      positions[i3] = ox * breathe + nx;
-      positions[i3 + 1] = oy * breathe + ny;
-      positions[i3 + 2] = oz * breathe + nz;
+      // Lenia-style interaction forces (calculated for sampled particles)
+      let leniaX = 0, leniaY = 0, leniaZ = 0;
+
+      if (updateLenia && i % sampleRate === 0) {
+        const neighbors = spatialGrid.getNeighbors(px, py, pz, neighborRadius);
+
+        let cohesionX = 0, cohesionY = 0, cohesionZ = 0;
+        let separationX = 0, separationY = 0, separationZ = 0;
+        let neighborCount = 0;
+
+        for (const j of neighbors) {
+          if (j === i) continue;
+
+          const j3 = j * 3;
+          const dx = positions[j3] - px;
+          const dy = positions[j3 + 1] - py;
+          const dz = positions[j3 + 2] - pz;
+          const distSq = dx * dx + dy * dy + dz * dz;
+          const dist = Math.sqrt(distSq);
+
+          if (dist < neighborRadius && dist > 0.01) {
+            neighborCount++;
+
+            // Lenia-style kernel: attraction at medium distance, repulsion at close
+            const normalizedDist = dist / neighborRadius;
+
+            if (normalizedDist < activityThreshold) {
+              // Repulsion zone (too close)
+              const repulsion = (activityThreshold - normalizedDist) * repulsionForce;
+              separationX -= (dx / dist) * repulsion;
+              separationY -= (dy / dist) * repulsion;
+              separationZ -= (dz / dist) * repulsion;
+            } else {
+              // Attraction zone
+              const attraction = (normalizedDist - activityThreshold) * attractionForce;
+              cohesionX += (dx / dist) * attraction;
+              cohesionY += (dy / dist) * attraction;
+              cohesionZ += (dz / dist) * attraction;
+            }
+          }
+        }
+
+        if (neighborCount > 0) {
+          // Apply cohesion (move towards average neighbor position)
+          leniaX = (cohesionX * cohesionStrength + separationX * separationStrength) / neighborCount;
+          leniaY = (cohesionY * cohesionStrength + separationY * separationStrength) / neighborCount;
+          leniaZ = (cohesionZ * cohesionStrength + separationZ * separationStrength) / neighborCount;
+
+          // Update velocity with smoothing
+          velocities[i3] = velocities[i3] * 0.9 + leniaX * interactionStrength;
+          velocities[i3 + 1] = velocities[i3 + 1] * 0.9 + leniaY * interactionStrength;
+          velocities[i3 + 2] = velocities[i3 + 2] * 0.9 + leniaZ * interactionStrength;
+        }
+      }
+
+      // Combine base movement with Lenia velocity
+      positions[i3] = ox * breathe + nx + velocities[i3];
+      positions[i3 + 1] = oy * breathe + ny + velocities[i3 + 1];
+      positions[i3 + 2] = oz * breathe + nz + velocities[i3 + 2];
+
+      // Dampen velocities over time (prevent runaway)
+      velocities[i3] *= 0.98;
+      velocities[i3 + 1] *= 0.98;
+      velocities[i3 + 2] *= 0.98;
     }
 
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
