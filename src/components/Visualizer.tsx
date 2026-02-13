@@ -193,9 +193,9 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
       solarIntensity,
     } = envParams;
 
-    // Update spatial hash grid every 3 frames for performance
+    // Update spatial hash grid every 2 frames for performance
     frameCount.current++;
-    const updateLenia = frameCount.current % 3 === 0;
+    const updateLenia = frameCount.current % 2 === 0;
 
     if (updateLenia) {
       spatialGrid.clear();
@@ -205,9 +205,9 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
       }
     }
 
-    // Sample particles for Lenia interactions (every 5th particle for performance)
-    const sampleRate = 5;
-    const interactionStrength = 0.015 * (0.5 + solarIntensity * 0.5);
+    // Sample particles for Lenia interactions (every 2nd particle for stronger effect)
+    const sampleRate = 2;
+    const interactionStrength = 0.06 * (0.5 + solarIntensity * 0.5);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
@@ -278,9 +278,9 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
           leniaZ = (cohesionZ * cohesionStrength + separationZ * separationStrength) / neighborCount;
 
           // Update velocity with smoothing
-          velocities[i3] = velocities[i3] * 0.9 + leniaX * interactionStrength;
-          velocities[i3 + 1] = velocities[i3 + 1] * 0.9 + leniaY * interactionStrength;
-          velocities[i3 + 2] = velocities[i3 + 2] * 0.9 + leniaZ * interactionStrength;
+          velocities[i3] = velocities[i3] * 0.85 + leniaX * interactionStrength;
+          velocities[i3 + 1] = velocities[i3 + 1] * 0.85 + leniaY * interactionStrength;
+          velocities[i3 + 2] = velocities[i3 + 2] * 0.85 + leniaZ * interactionStrength;
         }
       }
 
@@ -290,9 +290,9 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
       positions[i3 + 2] = oz * breathe + nz + velocities[i3 + 2];
 
       // Dampen velocities over time (prevent runaway)
-      velocities[i3] *= 0.98;
-      velocities[i3 + 1] *= 0.98;
-      velocities[i3 + 2] *= 0.98;
+      velocities[i3] *= 0.95;
+      velocities[i3 + 1] *= 0.95;
+      velocities[i3 + 2] *= 0.95;
     }
 
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
