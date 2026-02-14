@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import {
-  initAudio,
+  initAudioLight,
+  initAudioFull,
   startAudio,
   stopAudio,
   getIsPlaying,
@@ -12,14 +13,101 @@ import {
 import useEnvironment from "@/hooks/useEnvironment";
 import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
+// ═══════════════════════════════════════════════════════════════
+// Progressive Loading Types
+// ═══════════════════════════════════════════════════════════════
+
+type InitPhase =
+  | "idle"
+  | "starting"    // 軽量ビジュアル表示開始
+  | "audio"       // オーディオ軽量版初期化
+  | "environment" // 環境データ（キャッシュから即時）
+  | "visual"      // Visualizer表示
+  | "ready";      // フル機能有効
+
+const PHASE_INFO: Record<InitPhase, { label: string; progress: number }> = {
+  idle: { label: "", progress: 0 },
+  starting: { label: "STARTING", progress: 10 },
+  audio: { label: "AUDIO", progress: 30 },
+  environment: { label: "ENV", progress: 50 },
+  visual: { label: "VISUAL", progress: 75 },
+  ready: { label: "READY", progress: 100 },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// Lightweight Loading Visual Component
+// ═══════════════════════════════════════════════════════════════
+
+function LoadingVisual({ phase, progress }: { phase: InitPhase; progress: number }) {
+  const phases: InitPhase[] = ["audio", "environment", "visual"];
+
+  return (
+    <div className="fixed inset-0 loading-bg flex flex-col items-center justify-center z-50">
+      {/* Pulse rings */}
+      <div className="relative w-32 h-32 flex items-center justify-center">
+        <div className="absolute w-16 h-16 loading-ring" />
+        <div className="absolute w-24 h-24 loading-ring loading-ring-delayed" />
+        <div className="absolute w-32 h-32 loading-ring loading-ring-delayed-2" />
+
+        {/* Core */}
+        <div className="w-4 h-4 bg-cyan-400/80 rounded-full loading-core" />
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-8 w-48">
+        <div className="h-[2px] bg-white/10 overflow-hidden">
+          <div
+            className="h-full bg-cyan-400/80 progress-bar progress-bar-glow"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between text-[9px] font-mono text-white/30">
+          <span>{progress}%</span>
+          <span>{PHASE_INFO[phase].label}</span>
+        </div>
+      </div>
+
+      {/* Phase indicators */}
+      <div className="mt-6 flex items-center gap-4">
+        {phases.map((p, i) => {
+          const isActive = phase === p;
+          const isCompleted = phases.indexOf(phase) > i || phase === "ready";
+
+          return (
+            <div key={p} className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  isCompleted
+                    ? "bg-cyan-400"
+                    : isActive
+                    ? "bg-cyan-400/60 phase-dot-active"
+                    : "bg-white/20"
+                }`}
+              />
+              <span
+                className={`text-[10px] tracking-wider font-mono ${
+                  isCompleted || isActive ? "text-white/60" : "text-white/20"
+                }`}
+              >
+                {p.toUpperCase()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scan line effect */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
+        <div className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent scan-line" />
+      </div>
+    </div>
+  );
+}
+
 // Dynamic import for R3F components (SSR disabled)
 const Visualizer = dynamic(() => import("@/components/Visualizer"), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-black flex items-center justify-center">
-      <div className="text-white/30 text-sm tracking-widest">LOADING...</div>
-    </div>
-  ),
+  loading: () => null, // We use our own loading visual
 });
 
 // Dynamic import for Overlay UI (SSR disabled for QR code)
@@ -98,10 +186,23 @@ function EnvironmentIndicator({
 export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [phase, setPhase] = useState<InitPhase>("idle");
+  const [progress, setProgress] = useState(0);
+  const [showVisualizer, setShowVisualizer] = useState(false);
 
   // Bio-Rhythm System: Environment hook
   const { state: envState, params: envParams } = useEnvironment();
+
+  // Smooth progress animation
+  useEffect(() => {
+    const targetProgress = PHASE_INFO[phase].progress;
+    if (progress < targetProgress) {
+      const timer = setTimeout(() => {
+        setProgress((prev) => Math.min(prev + 2, targetProgress));
+      }, 20);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, progress]);
 
   // Update audio parameters when environment changes
   useEffect(() => {
@@ -118,11 +219,16 @@ export default function Home() {
   }, [isInitialized, envState.isLoading, envParams]);
 
   const handleInitialize = useCallback(async () => {
-    if (isLoading) return;
+    if (phase !== "idle") return;
 
-    setIsLoading(true);
     try {
-      await initAudio();
+      // Phase 1: Starting
+      setPhase("starting");
+
+      // Phase 2: Audio (light initialization - fast)
+      setPhase("audio");
+      await initAudioLight();
+
       // Apply initial environment parameters
       updateEnvironmentAudio({
         bpm: envParams.bpm,
@@ -132,15 +238,34 @@ export default function Home() {
         energy: envParams.energy,
         waveformType: envParams.waveformType,
       });
+
+      // Start audio immediately (without waiting for reverb)
       startAudio();
-      setIsInitialized(true);
       setIsPlaying(true);
+
+      // Phase 3: Environment (uses cached data, fast)
+      setPhase("environment");
+      // Environment is already loading via useEnvironment hook
+      // Just wait a brief moment for UI feedback
+      await new Promise((r) => setTimeout(r, 200));
+
+      // Phase 4: Visual (show visualizer)
+      setPhase("visual");
+      setShowVisualizer(true);
+      // Wait for visualizer to mount
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Phase 5: Ready
+      setPhase("ready");
+      setIsInitialized(true);
+
+      // Background: Initialize full audio (reverb) without blocking
+      initAudioFull();
     } catch (error) {
-      console.error("Failed to initialize audio:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Failed to initialize:", error);
+      setPhase("idle");
     }
-  }, [isLoading, envParams]);
+  }, [phase, envParams]);
 
   const handleToggle = useCallback(() => {
     if (getIsPlaying()) {
@@ -177,12 +302,17 @@ export default function Home() {
     };
   }, [isInitialized]);
 
+  const isLoading = phase !== "idle" && phase !== "ready";
+
   return (
     <div className="relative bg-black">
+      {/* Loading Visual */}
+      {isLoading && <LoadingVisual phase={phase} progress={progress} />}
+
       {/* Hero Section (100vh) */}
       <section className="relative w-full h-screen overflow-hidden">
-        {/* 3D Visualizer with environment params */}
-        <Visualizer envParams={envParams} />
+        {/* 3D Visualizer with environment params (only render when showVisualizer is true) */}
+        {showVisualizer && <Visualizer envParams={envParams} />}
 
         {/* HUD Overlay UI (Volume, Transmission, QR) */}
         <OverlayUI isActive={isInitialized} />
@@ -248,7 +378,7 @@ export default function Home() {
                   <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-400/60" />
 
                   <span className="text-cyan-400/90 text-xs tracking-[0.3em] font-mono">
-                    {isLoading ? "INITIALIZING..." : "INITIALIZE SYSTEM"}
+                    INITIALIZE SYSTEM
                   </span>
                 </div>
               </button>

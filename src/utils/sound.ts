@@ -3,6 +3,8 @@ import * as Tone from "tone";
 // NICTIA Sound System
 // Generative ambient techno: drones + stochastic pulses
 
+let isLightInitialized = false;
+let isFullInitialized = false;
 let isInitialized = false;
 let isPlaying = false;
 
@@ -41,24 +43,19 @@ function getRandomDroneNotes(): string[] {
   return notes;
 }
 
-export async function initAudio(): Promise<void> {
-  if (isInitialized) return;
+// Phase 1: Light initialization (Reverb無しで即座に開始)
+export async function initAudioLight(): Promise<void> {
+  if (isLightInitialized) return;
 
   await Tone.start();
 
-  // Create effects chain
-  reverb = new Tone.Reverb({
-    decay: 8,
-    wet: 0.6,
-    preDelay: 0.2,
-  }).toDestination();
-  await reverb.generate();
-
+  // Create effects chain WITHOUT reverb (reverb is added later)
+  // Delay connects directly to destination initially
   delay = new Tone.FeedbackDelay({
     delayTime: "8n.",
     feedback: 0.4,
     wet: 0.3,
-  }).connect(reverb);
+  }).toDestination();
 
   filter = new Tone.Filter({
     type: "lowpass",
@@ -102,7 +99,7 @@ export async function initAudio(): Promise<void> {
     volume: -18,
   }).connect(filter);
 
-  // Noise synth - texture
+  // Noise synth - texture (connects to delay initially, will reconnect to reverb later)
   noiseSynth = new Tone.NoiseSynth({
     noise: {
       type: "pink",
@@ -114,7 +111,7 @@ export async function initAudio(): Promise<void> {
       release: 1,
     },
     volume: -24,
-  }).connect(reverb);
+  }).connect(delay);
 
   // Drone loop - slow evolving chords
   droneLoop = new Tone.Loop((time) => {
@@ -145,7 +142,53 @@ export async function initAudio(): Promise<void> {
     }
   }, "4n");
 
+  isLightInitialized = true;
   isInitialized = true;
+}
+
+// Phase 2: Full initialization (Reverbをバックグラウンドで追加)
+export async function initAudioFull(): Promise<void> {
+  if (isFullInitialized || !isLightInitialized) return;
+
+  // Create reverb with wet: 0 (will fade in)
+  reverb = new Tone.Reverb({
+    decay: 8,
+    wet: 0,
+    preDelay: 0.2,
+  }).toDestination();
+
+  // Generate reverb (this is the heavy operation)
+  await reverb.generate();
+
+  // Reconnect delay to reverb instead of destination
+  delay?.disconnect();
+  delay?.connect(reverb);
+
+  // Reconnect noise synth to reverb for better texture
+  noiseSynth?.disconnect();
+  noiseSynth?.connect(reverb);
+
+  // Fade in reverb wet level
+  fadeInReverb();
+
+  isFullInitialized = true;
+}
+
+// Smooth fade-in for reverb wet level
+function fadeInReverb(): void {
+  if (!reverb) return;
+
+  // Fade from 0 to 0.6 over 3 seconds
+  reverb.wet.rampTo(0.6, 3);
+}
+
+// Legacy function for compatibility (calls both phases)
+export async function initAudio(): Promise<void> {
+  if (isInitialized) return;
+
+  await initAudioLight();
+  // Start full init in background (don't await)
+  initAudioFull();
 }
 
 export function startAudio(): void {
@@ -187,6 +230,14 @@ export function getIsPlaying(): boolean {
 
 export function getIsInitialized(): boolean {
   return isInitialized;
+}
+
+export function getIsLightInitialized(): boolean {
+  return isLightInitialized;
+}
+
+export function getIsFullInitialized(): boolean {
+  return isFullInitialized;
 }
 
 // Expose audio analysis for visualizer

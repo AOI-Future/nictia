@@ -16,6 +16,67 @@ import { TextureLoader } from "three";
 import { getFrequencyData, getIsPlaying } from "@/utils/sound";
 import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
+// ═══════════════════════════════════════════════════════════════
+// Performance Detection
+// ═══════════════════════════════════════════════════════════════
+
+type PerformanceLevel = "high" | "medium" | "low";
+
+interface PerformanceConfig {
+  particleCount: number;
+  enableLenia: boolean;
+  leniaSampleRate: number;
+  postProcessing: "full" | "medium" | "minimal";
+  dpr: [number, number];
+  coverLoadDelay: number;
+}
+
+const PERFORMANCE_CONFIGS: Record<PerformanceLevel, PerformanceConfig> = {
+  high: {
+    particleCount: 5000,
+    enableLenia: true,
+    leniaSampleRate: 2,
+    postProcessing: "full",
+    dpr: [1, 2],
+    coverLoadDelay: 1500,
+  },
+  medium: {
+    particleCount: 3000,
+    enableLenia: true,
+    leniaSampleRate: 4, // Less frequent updates
+    postProcessing: "medium",
+    dpr: [1, 1.5],
+    coverLoadDelay: 2000,
+  },
+  low: {
+    particleCount: 1500,
+    enableLenia: false,
+    leniaSampleRate: 8,
+    postProcessing: "minimal",
+    dpr: [1, 1],
+    coverLoadDelay: 3000,
+  },
+};
+
+function getPerformanceLevel(): PerformanceLevel {
+  if (typeof navigator === "undefined") return "medium";
+
+  const cores = navigator.hardwareConcurrency || 2;
+  const memory = (navigator as { deviceMemory?: number }).deviceMemory || 2;
+  const isMobile = /iPhone|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  // High: 8+ cores, 8GB+ RAM, not mobile
+  if (cores >= 8 && memory >= 8 && !isMobile) return "high";
+
+  // Medium: 4+ cores, 4GB+ RAM
+  if (cores >= 4 && memory >= 4) return "medium";
+
+  // Low: everything else
+  return "low";
+}
+
 // Types for discography
 interface Release {
   title: string;
@@ -37,6 +98,7 @@ interface SceneProps {
   envParams: EnvironmentParams;
   covers: string[];
   showCovers: boolean;
+  config: PerformanceConfig;
 }
 
 // Default environment params
@@ -125,12 +187,11 @@ const spatialGrid = new SpatialHashGrid(0.6);
 // Morphing Particle Field
 // ═══════════════════════════════════════════════════════════════
 
-// Pre-generate particle data with deterministic pseudo-random values
-const PARTICLE_COUNT = 5000;
-const PARTICLE_DATA = (() => {
-  const pos = new Float32Array(PARTICLE_COUNT * 3);
-  const origPos = new Float32Array(PARTICLE_COUNT * 3);
-  const col = new Float32Array(PARTICLE_COUNT * 3);
+// Generate particle data with deterministic pseudo-random values
+function generateParticleData(count: number) {
+  const pos = new Float32Array(count * 3);
+  const origPos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
 
   // Linear congruential generator for deterministic randomness
   let seed = 12345;
@@ -139,7 +200,7 @@ const PARTICLE_DATA = (() => {
     return seed / 0x7fffffff;
   };
 
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const theta = nextRand() * Math.PI * 2;
     const phi = Math.acos(2 * nextRand() - 1);
     const radius = 1.5 + nextRand() * 2.5;
@@ -163,18 +224,36 @@ const PARTICLE_DATA = (() => {
   }
 
   return { positions: pos, originalPositions: origPos, colors: col };
-})();
+}
 
-// Velocity buffer for Lenia dynamics
-const velocities = new Float32Array(PARTICLE_COUNT * 3);
+// Pre-generate for default count (will be regenerated based on performance)
+const DEFAULT_PARTICLE_COUNT = 5000;
+let PARTICLE_DATA = generateParticleData(DEFAULT_PARTICLE_COUNT);
+let velocities = new Float32Array(DEFAULT_PARTICLE_COUNT * 3);
 
-function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
+function ParticleField({
+  envParams,
+  config,
+}: {
+  envParams: EnvironmentParams;
+  config: PerformanceConfig;
+}) {
   const pointsRef = useRef<THREE.Points>(null);
   const frameCount = useRef(0);
 
-  const [positions, originalPositions, colors] = useMemo(() => {
-    return [PARTICLE_DATA.positions, PARTICLE_DATA.originalPositions, PARTICLE_DATA.colors];
-  }, []);
+  const [positions, originalPositions, colors, particleCount] = useMemo(() => {
+    // Regenerate particles based on performance config
+    if (config.particleCount !== DEFAULT_PARTICLE_COUNT) {
+      PARTICLE_DATA = generateParticleData(config.particleCount);
+      velocities = new Float32Array(config.particleCount * 3);
+    }
+    return [
+      PARTICLE_DATA.positions,
+      PARTICLE_DATA.originalPositions,
+      PARTICLE_DATA.colors,
+      config.particleCount,
+    ];
+  }, [config.particleCount]);
 
   useFrame((state) => {
     if (!pointsRef.current) return;
@@ -205,23 +284,23 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
       solarIntensity,
     } = envParams;
 
-    // Update spatial hash grid every 2 frames for performance
+    // Update spatial hash grid based on performance config
     frameCount.current++;
-    const updateLenia = frameCount.current % 2 === 0;
+    const updateLenia = config.enableLenia && frameCount.current % 2 === 0;
 
     if (updateLenia) {
       spatialGrid.clear();
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
+      for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
         spatialGrid.insert(i, positions[i3], positions[i3 + 1], positions[i3 + 2]);
       }
     }
 
-    // Sample particles for Lenia interactions (every 2nd particle for stronger effect)
-    const sampleRate = 2;
+    // Sample particles for Lenia interactions (based on performance config)
+    const sampleRate = config.leniaSampleRate;
     const interactionStrength = 0.06 * (0.5 + solarIntensity * 0.5);
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       const ox = originalPositions[i3];
       const oy = originalPositions[i3 + 1];
@@ -244,7 +323,7 @@ function ParticleField({ envParams }: { envParams: EnvironmentParams }) {
       // Lenia-style interaction forces (calculated for sampled particles)
       let leniaX = 0, leniaY = 0, leniaZ = 0;
 
-      if (updateLenia && i % sampleRate === 0) {
+      if (config.enableLenia && updateLenia && i % sampleRate === 0) {
         const neighbors = spatialGrid.getNeighbors(px, py, pz, neighborRadius);
 
         let cohesionX = 0, cohesionY = 0, cohesionZ = 0;
@@ -646,9 +725,45 @@ function FloatingRings({ envParams }: { envParams: EnvironmentParams }) {
 // Post-processing Effects
 // ═══════════════════════════════════════════════════════════════
 
-function Effects({ envParams }: { envParams: EnvironmentParams }) {
+function Effects({
+  envParams,
+  postProcessingLevel,
+}: {
+  envParams: EnvironmentParams;
+  postProcessingLevel: "full" | "medium" | "minimal";
+}) {
   const { bloomIntensity, noiseIntensity, glitchIntensity } = envParams;
 
+  // Minimal: Only Bloom
+  if (postProcessingLevel === "minimal") {
+    return (
+      <EffectComposer>
+        <Bloom
+          intensity={bloomIntensity * 0.7}
+          luminanceThreshold={0.3}
+          luminanceSmoothing={0.9}
+          mipmapBlur
+        />
+      </EffectComposer>
+    );
+  }
+
+  // Medium: Bloom + Vignette (no Noise/Glitch)
+  if (postProcessingLevel === "medium") {
+    return (
+      <EffectComposer>
+        <Bloom
+          intensity={bloomIntensity}
+          luminanceThreshold={0.2}
+          luminanceSmoothing={0.9}
+          mipmapBlur
+        />
+        <Vignette offset={0.3} darkness={0.6} eskil={false} />
+      </EffectComposer>
+    );
+  }
+
+  // Full: All effects based on environment
   // Render different effect combinations based on active effects
   // EffectComposer doesn't accept null children, so we use separate branches
   if (glitchIntensity > 0 && noiseIntensity > 0) {
@@ -729,7 +844,7 @@ function Effects({ envParams }: { envParams: EnvironmentParams }) {
 // Main Scene
 // ═══════════════════════════════════════════════════════════════
 
-function Scene({ envParams, covers, showCovers }: SceneProps) {
+function Scene({ envParams, covers, showCovers, config }: SceneProps) {
   return (
     <>
       <color attach="background" args={[envParams.backgroundColor]} />
@@ -740,7 +855,7 @@ function Scene({ envParams, covers, showCovers }: SceneProps) {
       <pointLight position={[-5, 0, 0]} intensity={0.5} color="#9a4aff" />
 
       <Eye envParams={envParams} />
-      <ParticleField envParams={envParams} />
+      <ParticleField envParams={envParams} config={config} />
 
       {/* Album covers with Suspense for texture loading */}
       <Suspense fallback={null}>
@@ -749,7 +864,7 @@ function Scene({ envParams, covers, showCovers }: SceneProps) {
 
       <FloatingRings envParams={envParams} />
 
-      <Effects envParams={envParams} />
+      <Effects envParams={envParams} postProcessingLevel={config.postProcessing} />
     </>
   );
 }
@@ -762,6 +877,13 @@ export default function Visualizer({ envParams, covers = [] }: VisualizerProps) 
   const params = envParams || defaultEnvParams;
   const [loadedCovers, setLoadedCovers] = useState<string[]>(covers);
   const [showCovers, setShowCovers] = useState(false);
+
+  // Detect performance level once on mount
+  const [perfConfig] = useState<PerformanceConfig>(() => {
+    const level = getPerformanceLevel();
+    console.log(`[NICTIA] Performance level: ${level}`);
+    return PERFORMANCE_CONFIGS[level];
+  });
 
   // Fetch covers from discography if not provided
   useEffect(() => {
@@ -780,26 +902,31 @@ export default function Visualizer({ envParams, covers = [] }: VisualizerProps) 
     }
   }, [covers]);
 
-  // Delay showing covers for smooth initial load
+  // Delay showing covers based on performance level
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowCovers(true);
-    }, 1500); // Show covers after 1.5s
+    }, perfConfig.coverLoadDelay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [perfConfig.coverLoadDelay]);
 
   return (
     <div className="fixed inset-0 w-full h-full">
       <Canvas
         camera={{ position: [0, 0, 6], fov: 50 }}
         gl={{
-          antialias: true,
+          antialias: perfConfig.postProcessing !== "minimal",
           alpha: false,
           powerPreference: "high-performance",
         }}
-        dpr={[1, 2]}
+        dpr={perfConfig.dpr}
       >
-        <Scene envParams={params} covers={loadedCovers} showCovers={showCovers} />
+        <Scene
+          envParams={params}
+          covers={loadedCovers}
+          showCovers={showCovers}
+          config={perfConfig}
+        />
       </Canvas>
     </div>
   );

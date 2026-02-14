@@ -300,25 +300,103 @@ function calculateParams(state: EnvironmentState): EnvironmentParams {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Cache Configuration
+// ═══════════════════════════════════════════════════════════════
+
+const CACHE_KEY = "nictia_env_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CachedEnvData {
+  state: Partial<EnvironmentState>;
+  timestamp: number;
+}
+
+function getCachedEnv(): Partial<EnvironmentState> | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+
+    const data: CachedEnvData = JSON.parse(cached);
+    const isExpired = Date.now() - data.timestamp > CACHE_TTL;
+
+    if (isExpired) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    return data.state;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedEnv(state: Partial<EnvironmentState>): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    const data: CachedEnvData = {
+      state: {
+        latitude: state.latitude,
+        longitude: state.longitude,
+        weatherCode: state.weatherCode,
+        temperature: state.temperature,
+        weather: state.weather,
+      },
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Default values (Tokyo)
 // ═══════════════════════════════════════════════════════════════
 
 const DEFAULT_LATITUDE = 35.6895;
 const DEFAULT_LONGITUDE = 139.6917;
 
-const initialState: EnvironmentState = {
-  latitude: DEFAULT_LATITUDE,
-  longitude: DEFAULT_LONGITUDE,
-  hour: new Date().getHours(),
-  weatherCode: 0,
-  isDay: true,
-  temperature: 20,
-  timeOfDay: "day",
-  weather: "clear",
-  isLoading: true,
-  error: null,
-  locationPermission: "prompt",
-};
+// Get initial state from cache or defaults
+function getInitialState(): EnvironmentState {
+  const cached = getCachedEnv();
+  const hour = new Date().getHours();
+  const timeOfDay: TimeOfDay = hour >= 6 && hour < 18 ? "day" : "night";
+
+  if (cached) {
+    return {
+      latitude: cached.latitude ?? DEFAULT_LATITUDE,
+      longitude: cached.longitude ?? DEFAULT_LONGITUDE,
+      hour,
+      weatherCode: cached.weatherCode ?? 0,
+      isDay: timeOfDay === "day",
+      temperature: cached.temperature ?? 20,
+      timeOfDay,
+      weather: cached.weather ?? "clear",
+      isLoading: false, // Start with cached data, update in background
+      error: null,
+      locationPermission: "prompt",
+    };
+  }
+
+  return {
+    latitude: DEFAULT_LATITUDE,
+    longitude: DEFAULT_LONGITUDE,
+    hour,
+    weatherCode: 0,
+    isDay: true,
+    temperature: 20,
+    timeOfDay,
+    weather: "clear",
+    isLoading: true,
+    error: null,
+    locationPermission: "prompt",
+  };
+}
+
+const initialState: EnvironmentState = getInitialState();
 
 // ═══════════════════════════════════════════════════════════════
 // Custom Hook
@@ -351,8 +429,7 @@ export function useEnvironment() {
       const timeOfDay: TimeOfDay = hour >= 6 && hour < 18 ? "day" : "night";
       const weather = mapWeatherCode(weatherCode);
 
-      setState((prev) => ({
-        ...prev,
+      const newState = {
         latitude: lat,
         longitude: lon,
         hour,
@@ -363,7 +440,15 @@ export function useEnvironment() {
         weather,
         isLoading: false,
         error: null,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        ...newState,
       }));
+
+      // Cache the result for faster subsequent loads
+      setCachedEnv(newState);
     } catch (error) {
       console.error("Failed to fetch weather:", error);
       setState((prev) => ({
@@ -405,7 +490,7 @@ export function useEnvironment() {
       },
       {
         enableHighAccuracy: false,
-        timeout: 10000,
+        timeout: 3000, // Reduced from 10s to 3s for faster fallback
         maximumAge: 300000, // 5 minutes cache
       }
     );

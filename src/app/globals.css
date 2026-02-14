@@ -64,30 +64,36 @@ html.scroll-enabled body {
   overflow-x: hidden;
 }
 
-/* Sound wave animations for Radio Banner */
+/* Sound wave animations for Radio Banner - GPU accelerated with transform */
 @keyframes soundwave-1 {
-  0%, 100% { height: 0.5rem; }
-  50% { height: 1rem; }
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
 }
 
 @keyframes soundwave-2 {
-  0%, 100% { height: 0.75rem; }
-  50% { height: 0.375rem; }
+  0%, 100% { transform: scaleY(0.75); }
+  50% { transform: scaleY(0.375); }
 }
 
 @keyframes soundwave-3 {
-  0%, 100% { height: 1rem; }
-  50% { height: 0.5rem; }
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.5); }
 }
 
 @keyframes soundwave-4 {
-  0%, 100% { height: 0.625rem; }
-  50% { height: 1rem; }
+  0%, 100% { transform: scaleY(0.625); }
+  50% { transform: scaleY(1); }
 }
 
 @keyframes soundwave-5 {
-  0%, 100% { height: 0.875rem; }
-  50% { height: 0.5rem; }
+  0%, 100% { transform: scaleY(0.875); }
+  50% { transform: scaleY(0.5); }
+}
+
+.soundwave-bar {
+  height: 1rem; /* Fixed base height */
+  will-change: transform;
+  transform-origin: bottom;
 }
 
 .animate-soundwave-1 {
@@ -145,4 +151,134 @@ html.scroll-enabled body {
 
 .animate-scroll-bounce {
   animation: scroll-bounce 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Lightweight Loading Visuals - CSS only, GPU accelerated
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Loading background gradient */
+.loading-bg {
+  background: radial-gradient(ellipse at center,
+    rgba(10, 10, 30, 1) 0%,
+    rgba(0, 0, 8, 1) 70%);
+}
+
+/* Pulse ring animation */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.loading-ring {
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  border-radius: 50%;
+  will-change: transform, opacity;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.loading-ring-delayed {
+  animation-delay: 0.5s;
+}
+
+.loading-ring-delayed-2 {
+  animation-delay: 1s;
+}
+
+/* Core pulse (center dot) */
+@keyframes core-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.loading-core {
+  will-change: transform, opacity;
+  animation: core-pulse 1.5s ease-in-out infinite;
+}
+
+/* Progress bar animation */
+@keyframes progress-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.8);
+  }
+}
+
+.progress-bar {
+  will-change: width;
+  transition: width 0.3s ease-out;
+}
+
+.progress-bar-glow {
+  animation: progress-glow 1s ease-in-out infinite;
+}
+
+/* Phase indicator dots */
+@keyframes phase-dot {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.phase-dot-active {
+  will-change: transform, opacity;
+  animation: phase-dot 0.8s ease-in-out infinite;
+}
+
+/* Subtle scan line effect */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.scan-line {
+  will-change: transform;
+  animation: scan-line 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Reduced Motion Support - Accessibility
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-soundwave-1,
+  .animate-soundwave-2,
+  .animate-soundwave-3,
+  .animate-soundwave-4,
+  .animate-soundwave-5,
+  .loading-ring,
+  .loading-core,
+  .phase-dot-active,
+  .scan-line,
+  .animate-scroll-bounce,
+  .animate-gradient {
+    animation: none;
+  }
+
+  .soundwave-bar {
+    transform: scaleY(0.7);
+  }
+
+  .loading-ring {
+    opacity: 0.5;
+    transform: scale(1.5);
+  }
+
+  .progress-bar {
+    transition: width 0.1s linear;
+  }
 }
