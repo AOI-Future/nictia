@@ -43,11 +43,19 @@ function getRandomDroneNotes(): string[] {
   return notes;
 }
 
+// Phase 0: Just start Tone context (very fast)
+export async function initToneContext(): Promise<void> {
+  await Tone.start();
+}
+
 // Phase 1: Light initialization (Reverb無しで即座に開始)
 export async function initAudioLight(): Promise<void> {
   if (isLightInitialized) return;
 
-  await Tone.start();
+  // Tone.start() should already be called via initToneContext
+  if (Tone.getContext().state !== "running") {
+    await Tone.start();
+  }
 
   // Create effects chain WITHOUT reverb (reverb is added later)
   // Delay connects directly to destination initially

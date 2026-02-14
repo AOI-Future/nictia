@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import {
+  initToneContext,
   initAudioLight,
   initAudioFull,
   startAudio,
@@ -20,16 +21,18 @@ import type { EnvironmentParams } from "@/hooks/useEnvironment";
 type InitPhase =
   | "idle"
   | "starting"    // 軽量ビジュアル表示開始
-  | "audio"       // オーディオ軽量版初期化
+  | "context"     // Tone.jsコンテキスト起動
+  | "synth"       // シンセ初期化
   | "environment" // 環境データ（キャッシュから即時）
   | "visual"      // Visualizer表示
   | "ready";      // フル機能有効
 
 const PHASE_INFO: Record<InitPhase, { label: string; progress: number }> = {
   idle: { label: "", progress: 0 },
-  starting: { label: "STARTING", progress: 10 },
-  audio: { label: "AUDIO", progress: 30 },
-  environment: { label: "ENV", progress: 50 },
+  starting: { label: "STARTING", progress: 5 },
+  context: { label: "AUDIO", progress: 20 },
+  synth: { label: "SYNTH", progress: 40 },
+  environment: { label: "ENV", progress: 55 },
   visual: { label: "VISUAL", progress: 75 },
   ready: { label: "READY", progress: 100 },
 };
@@ -39,7 +42,7 @@ const PHASE_INFO: Record<InitPhase, { label: string; progress: number }> = {
 // ═══════════════════════════════════════════════════════════════
 
 function LoadingVisual({ phase, progress }: { phase: InitPhase; progress: number }) {
-  const phases: InitPhase[] = ["audio", "environment", "visual"];
+  const phases: InitPhase[] = ["context", "synth", "environment", "visual"];
 
   return (
     <div className="fixed inset-0 loading-bg flex flex-col items-center justify-center z-50">
@@ -193,13 +196,14 @@ export default function Home() {
   // Bio-Rhythm System: Environment hook
   const { state: envState, params: envParams } = useEnvironment();
 
-  // Smooth progress animation
+  // Smooth progress animation (faster increments for better UX)
   useEffect(() => {
     const targetProgress = PHASE_INFO[phase].progress;
     if (progress < targetProgress) {
+      const increment = Math.max(3, Math.ceil((targetProgress - progress) / 5));
       const timer = setTimeout(() => {
-        setProgress((prev) => Math.min(prev + 2, targetProgress));
-      }, 20);
+        setProgress((prev) => Math.min(prev + increment, targetProgress));
+      }, 16);
       return () => clearTimeout(timer);
     }
   }, [phase, progress]);
@@ -222,11 +226,16 @@ export default function Home() {
     if (phase !== "idle") return;
 
     try {
-      // Phase 1: Starting
+      // Phase 1: Starting (show loading UI)
       setPhase("starting");
+      await new Promise((r) => setTimeout(r, 50));
 
-      // Phase 2: Audio (light initialization - fast)
-      setPhase("audio");
+      // Phase 2: Audio context (Tone.start - user gesture required)
+      setPhase("context");
+      await initToneContext();
+
+      // Phase 3: Synth initialization
+      setPhase("synth");
       await initAudioLight();
 
       // Apply initial environment parameters
@@ -243,19 +252,16 @@ export default function Home() {
       startAudio();
       setIsPlaying(true);
 
-      // Phase 3: Environment (uses cached data, fast)
+      // Phase 4: Environment (uses cached data, fast)
       setPhase("environment");
-      // Environment is already loading via useEnvironment hook
-      // Just wait a brief moment for UI feedback
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 100));
 
-      // Phase 4: Visual (show visualizer)
+      // Phase 5: Visual (show visualizer)
       setPhase("visual");
       setShowVisualizer(true);
-      // Wait for visualizer to mount
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 400));
 
-      // Phase 5: Ready
+      // Phase 6: Ready
       setPhase("ready");
       setIsInitialized(true);
 
