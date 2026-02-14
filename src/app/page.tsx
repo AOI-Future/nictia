@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import {
   initToneContext,
   initAudioLight,
-  initAudioFull,
+  initAudioFullDeferred,
   startAudio,
   stopAudio,
   getIsPlaying,
@@ -266,7 +266,7 @@ export default function Home() {
       setIsInitialized(true);
 
       // Background: Initialize full audio (reverb) without blocking
-      initAudioFull();
+      initAudioFullDeferred();
     } catch (error) {
       console.error("Failed to initialize:", error);
       setPhase("idle");

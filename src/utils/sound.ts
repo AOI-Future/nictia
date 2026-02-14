@@ -260,6 +260,19 @@ export async function initAudioFull(): Promise<void> {
   isFullInitialized = true;
 }
 
+export function initAudioFullDeferred(): void {
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      void initAudioFull();
+    }, { timeout: 2000 });
+    return;
+  }
+
+  setTimeout(() => {
+    void initAudioFull();
+  }, 300);
+}
+
 // Smooth fade-in for reverb wet level
 function fadeInReverb(): void {
   if (!reverb) return;
@@ -274,7 +287,7 @@ export async function initAudio(): Promise<void> {
 
   await initAudioLight();
   // Start full init in background (don't await)
-  initAudioFull();
+  initAudioFullDeferred();
 }
 
 export function startAudio(): void {
@@ -329,6 +342,8 @@ export function getIsFullInitialized(): boolean {
 // Expose audio analysis for visualizer
 let analyser: Tone.Analyser | null = null;
 let waveformAnalyser: Tone.Analyser | null = null;
+let cachedAudioIntensity = 0.3;
+let lastAudioIntensityUpdate = 0;
 
 export function getAnalyser(): Tone.Analyser {
   if (!analyser) {
@@ -348,6 +363,30 @@ export function getWaveformAnalyser(): Tone.Analyser {
 
 export function getFrequencyData(): Float32Array {
   return getAnalyser().getValue() as Float32Array;
+}
+
+export function getAudioIntensity(): number {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  // Throttle FFT aggregation to ~30fps to reduce per-frame CPU spikes
+  if (now - lastAudioIntensityUpdate < 33) {
+    return cachedAudioIntensity;
+  }
+
+  const freqData = getFrequencyData();
+  let sum = 0;
+  let samples = 0;
+
+  // Sample every other bin to reduce work while keeping responsiveness
+  for (let i = 0; i < freqData.length; i += 2) {
+    sum += Math.abs(freqData[i]);
+    samples++;
+  }
+
+  const average = samples > 0 ? sum / samples : 0;
+  cachedAudioIntensity = 0.3 + average / 55;
+  lastAudioIntensityUpdate = now;
+
+  return cachedAudioIntensity;
 }
 
 export function getWaveformData(): Float32Array {

@@ -13,7 +13,7 @@ import {
 import { GlitchMode } from "postprocessing";
 import * as THREE from "three";
 import { TextureLoader } from "three";
-import { getFrequencyData, getIsPlaying } from "@/utils/sound";
+import { getAudioIntensity, getIsPlaying } from "@/utils/sound";
 import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
 // ═══════════════════════════════════════════════════════════════
@@ -278,10 +278,7 @@ function ParticleField({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity =
-        0.3 +
-        (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 50);
+      audioIntensity = getAudioIntensity();
     }
 
     // Apply environment-based speed modifier
@@ -443,10 +440,7 @@ function Eye({ envParams }: { envParams: EnvironmentParams }) {
 
     let audioIntensity = 0.2;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity =
-        0.2 +
-        (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 80);
+      audioIntensity = Math.max(0.2, getAudioIntensity() * 0.8);
     }
 
     const baseScale = 0.25 + audioIntensity * 0.4;
@@ -566,8 +560,7 @@ function AlbumCover({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+      audioIntensity = getAudioIntensity();
     }
 
     const speed = orbitData.speed * (1 + audioIntensity * 0.3) * speedMod;
@@ -639,8 +632,7 @@ function OrbitingFragment({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+      audioIntensity = getAudioIntensity();
     }
 
     const speed = orbitData.speed * (1 + audioIntensity * 0.5) * speedMod;
