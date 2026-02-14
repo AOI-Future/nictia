@@ -13,7 +13,7 @@ import {
 import { GlitchMode } from "postprocessing";
 import * as THREE from "three";
 import { TextureLoader } from "three";
-import { getFrequencyData, getIsPlaying } from "@/utils/sound";
+import { getAudioIntensity, getIsPlaying } from "@/utils/sound";
 import type { EnvironmentParams } from "@/hooks/useEnvironment";
 
 // ═══════════════════════════════════════════════════════════════
@@ -29,6 +29,9 @@ interface PerformanceConfig {
   postProcessing: "full" | "medium" | "minimal";
   dpr: [number, number];
   coverLoadDelay: number;
+  fragmentCount: number;
+  enableShadows: boolean;
+  powerPreference: WebGLPowerPreference;
 }
 
 const PERFORMANCE_CONFIGS: Record<PerformanceLevel, PerformanceConfig> = {
@@ -39,6 +42,9 @@ const PERFORMANCE_CONFIGS: Record<PerformanceLevel, PerformanceConfig> = {
     postProcessing: "full",
     dpr: [1, 2],
     coverLoadDelay: 1500,
+    fragmentCount: 12,
+    enableShadows: true,
+    powerPreference: "high-performance",
   },
   medium: {
     particleCount: 3000,
@@ -47,6 +53,9 @@ const PERFORMANCE_CONFIGS: Record<PerformanceLevel, PerformanceConfig> = {
     postProcessing: "medium",
     dpr: [1, 1.5],
     coverLoadDelay: 2000,
+    fragmentCount: 8,
+    enableShadows: false,
+    powerPreference: "default",
   },
   low: {
     particleCount: 1500,
@@ -55,6 +64,9 @@ const PERFORMANCE_CONFIGS: Record<PerformanceLevel, PerformanceConfig> = {
     postProcessing: "minimal",
     dpr: [1, 1],
     coverLoadDelay: 3000,
+    fragmentCount: 4,
+    enableShadows: false,
+    powerPreference: "low-power",
   },
 };
 
@@ -66,6 +78,14 @@ function getPerformanceLevel(): PerformanceLevel {
   const isMobile = /iPhone|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
+
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
+  const saveData = !!connection?.saveData;
+
+  if (prefersReducedMotion || saveData) return "low";
 
   // High: 8+ cores, 8GB+ RAM, not mobile
   if (cores >= 8 && memory >= 8 && !isMobile) return "high";
@@ -258,10 +278,7 @@ function ParticleField({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity =
-        0.3 +
-        (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 50);
+      audioIntensity = getAudioIntensity();
     }
 
     // Apply environment-based speed modifier
@@ -423,10 +440,7 @@ function Eye({ envParams }: { envParams: EnvironmentParams }) {
 
     let audioIntensity = 0.2;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity =
-        0.2 +
-        (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 80);
+      audioIntensity = Math.max(0.2, getAudioIntensity() * 0.8);
     }
 
     const baseScale = 0.25 + audioIntensity * 0.4;
@@ -546,8 +560,7 @@ function AlbumCover({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+      audioIntensity = getAudioIntensity();
     }
 
     const speed = orbitData.speed * (1 + audioIntensity * 0.3) * speedMod;
@@ -619,8 +632,7 @@ function OrbitingFragment({
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
-      const freqData = getFrequencyData();
-      audioIntensity = 0.3 + (freqData.reduce((a, b) => a + Math.abs(b), 0) / freqData.length / 60);
+      audioIntensity = getAudioIntensity();
     }
 
     const speed = orbitData.speed * (1 + audioIntensity * 0.5) * speedMod;
@@ -650,8 +662,17 @@ function OrbitingFragment({
   );
 }
 
-function OrbitingCovers({ envParams, covers, showCovers }: { envParams: EnvironmentParams; covers: string[]; showCovers: boolean }) {
-  const fragmentCount = 12; // Additional decorative fragments
+function OrbitingCovers({
+  envParams,
+  covers,
+  showCovers,
+  fragmentCount,
+}: {
+  envParams: EnvironmentParams;
+  covers: string[];
+  showCovers: boolean;
+  fragmentCount: number;
+}) {
 
   return (
     <group>
@@ -853,7 +874,12 @@ function Scene({ envParams, covers, showCovers, config }: SceneProps) {
 
       {/* Album covers with Suspense for texture loading */}
       <Suspense fallback={null}>
-        <OrbitingCovers envParams={envParams} covers={covers} showCovers={showCovers} />
+        <OrbitingCovers
+          envParams={envParams}
+          covers={covers}
+          showCovers={showCovers}
+          fragmentCount={config.fragmentCount}
+        />
       </Suspense>
 
       <FloatingRings envParams={envParams} />
@@ -911,9 +937,12 @@ export default function Visualizer({ envParams, covers = [] }: VisualizerProps) 
         gl={{
           antialias: perfConfig.postProcessing !== "minimal",
           alpha: false,
-          powerPreference: "high-performance",
+          powerPreference: perfConfig.powerPreference,
+          stencil: false,
+          depth: true,
         }}
         dpr={perfConfig.dpr}
+        shadows={perfConfig.enableShadows}
       >
         <Scene
           envParams={params}

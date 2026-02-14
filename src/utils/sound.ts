@@ -8,6 +8,18 @@ let isFullInitialized = false;
 let isInitialized = false;
 let isPlaying = false;
 
+interface AudioProfile {
+  lowMemoryMode: boolean;
+  skipReverb: boolean;
+  analyserBins: number;
+  waveformBins: number;
+  droneInterval: string;
+  pulseInterval: string;
+  noiseInterval: string;
+}
+
+let audioProfile: AudioProfile | null = null;
+
 // Synths
 let droneSynth: Tone.PolySynth | null = null;
 let pulseSynth: Tone.MonoSynth | null = null;
@@ -28,6 +40,50 @@ const baseNotes = ["C", "D", "E", "G", "A"]; // Pentatonic scale
 const octaves = [2, 3, 4];
 const droneNotes = ["C2", "G2", "C3", "E3"];
 
+function getAudioProfile(): AudioProfile {
+  if (audioProfile) return audioProfile;
+
+  if (typeof navigator === "undefined") {
+    audioProfile = {
+      lowMemoryMode: false,
+      skipReverb: false,
+      analyserBins: 64,
+      waveformBins: 256,
+      droneInterval: "2m",
+      pulseInterval: "8n",
+      noiseInterval: "4n",
+    };
+    return audioProfile;
+  }
+
+  const ua = navigator.userAgent;
+  const isMobile = /iPhone|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  const cores = navigator.hardwareConcurrency || 2;
+  const memory = (navigator as { deviceMemory?: number }).deviceMemory || 2;
+  const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
+  const saveData = !!connection?.saveData;
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  const lowMemoryMode =
+    saveData || reducedMotion || isMobile || memory <= 4 || cores <= 4;
+  const skipReverb = saveData || reducedMotion || (isSafari && (isMobile || memory <= 4));
+
+  audioProfile = {
+    lowMemoryMode,
+    skipReverb,
+    analyserBins: lowMemoryMode ? 32 : 64,
+    waveformBins: lowMemoryMode ? 128 : 256,
+    droneInterval: lowMemoryMode ? "4m" : "2m",
+    pulseInterval: lowMemoryMode ? "4n" : "8n",
+    noiseInterval: lowMemoryMode ? "2n" : "4n",
+  };
+
+  return audioProfile;
+}
+
 function getRandomNote(): string {
   const note = baseNotes[Math.floor(Math.random() * baseNotes.length)];
   const octave = octaves[Math.floor(Math.random() * octaves.length)];
@@ -46,11 +102,14 @@ function getRandomDroneNotes(): string[] {
 // Phase 0: Just start Tone context (very fast)
 export async function initToneContext(): Promise<void> {
   await Tone.start();
+  const context = Tone.getContext();
+  context.lookAhead = 0.05;
 }
 
 // Phase 1: Light initialization (Reverb無しで即座に開始)
 export async function initAudioLight(): Promise<void> {
   if (isLightInitialized) return;
+  const profile = getAudioProfile();
 
   // Tone.start() should already be called via initToneContext
   if (Tone.getContext().state !== "running") {
@@ -61,8 +120,8 @@ export async function initAudioLight(): Promise<void> {
   // Delay connects directly to destination initially
   delay = new Tone.FeedbackDelay({
     delayTime: "8n.",
-    feedback: 0.4,
-    wet: 0.3,
+    feedback: profile.lowMemoryMode ? 0.3 : 0.4,
+    wet: profile.lowMemoryMode ? 0.2 : 0.3,
   }).toDestination();
 
   filter = new Tone.Filter({
@@ -131,7 +190,7 @@ export async function initAudioLight(): Promise<void> {
       const newFreq = 500 + Math.random() * 2000;
       filter.frequency.rampTo(newFreq, 4);
     }
-  }, "2m");
+  }, profile.droneInterval);
 
   // Pulse loop - irregular rhythmic pulses
   pulseLoop = new Tone.Loop((time) => {
@@ -141,14 +200,14 @@ export async function initAudioLight(): Promise<void> {
       const duration = ["16n", "8n", "4n"][Math.floor(Math.random() * 3)];
       pulseSynth?.triggerAttackRelease(note, duration, time);
     }
-  }, "8n");
+  }, profile.pulseInterval);
 
   // Noise loop - occasional textural bursts
   noiseLoop = new Tone.Loop((time) => {
     if (Math.random() > 0.7) {
       noiseSynth?.triggerAttackRelease("4n", time);
     }
-  }, "4n");
+  }, profile.noiseInterval);
 
   isLightInitialized = true;
   isInitialized = true;
@@ -157,6 +216,12 @@ export async function initAudioLight(): Promise<void> {
 // Phase 2: Full initialization (Reverbをバックグラウンドで追加)
 export async function initAudioFull(): Promise<void> {
   if (isFullInitialized || !isLightInitialized) return;
+  const profile = getAudioProfile();
+
+  if (profile.skipReverb) {
+    isFullInitialized = true;
+    return;
+  }
 
   // Create reverb with wet: 0 (will fade in)
   reverb = new Tone.Reverb({
@@ -166,7 +231,20 @@ export async function initAudioFull(): Promise<void> {
   }).toDestination();
 
   // Generate reverb (this is the heavy operation)
-  await reverb.generate();
+  try {
+    await Promise.race([
+      reverb.generate(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Reverb generation timeout")), 2500)
+      ),
+    ]);
+  } catch (error) {
+    console.warn("[NICTIA] Reverb disabled for stability:", error);
+    reverb.dispose();
+    reverb = null;
+    isFullInitialized = true;
+    return;
+  }
 
   // Reconnect delay to reverb instead of destination
   delay?.disconnect();
@@ -180,6 +258,19 @@ export async function initAudioFull(): Promise<void> {
   fadeInReverb();
 
   isFullInitialized = true;
+}
+
+export function initAudioFullDeferred(): void {
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      void initAudioFull();
+    }, { timeout: 2000 });
+    return;
+  }
+
+  setTimeout(() => {
+    void initAudioFull();
+  }, 300);
 }
 
 // Smooth fade-in for reverb wet level
@@ -196,7 +287,7 @@ export async function initAudio(): Promise<void> {
 
   await initAudioLight();
   // Start full init in background (don't await)
-  initAudioFull();
+  initAudioFullDeferred();
 }
 
 export function startAudio(): void {
@@ -251,10 +342,12 @@ export function getIsFullInitialized(): boolean {
 // Expose audio analysis for visualizer
 let analyser: Tone.Analyser | null = null;
 let waveformAnalyser: Tone.Analyser | null = null;
+let cachedAudioIntensity = 0.3;
+let lastAudioIntensityUpdate = 0;
 
 export function getAnalyser(): Tone.Analyser {
   if (!analyser) {
-    analyser = new Tone.Analyser("fft", 64);
+    analyser = new Tone.Analyser("fft", getAudioProfile().analyserBins);
     Tone.getDestination().connect(analyser);
   }
   return analyser;
@@ -262,7 +355,7 @@ export function getAnalyser(): Tone.Analyser {
 
 export function getWaveformAnalyser(): Tone.Analyser {
   if (!waveformAnalyser) {
-    waveformAnalyser = new Tone.Analyser("waveform", 256);
+    waveformAnalyser = new Tone.Analyser("waveform", getAudioProfile().waveformBins);
     Tone.getDestination().connect(waveformAnalyser);
   }
   return waveformAnalyser;
@@ -270,6 +363,30 @@ export function getWaveformAnalyser(): Tone.Analyser {
 
 export function getFrequencyData(): Float32Array {
   return getAnalyser().getValue() as Float32Array;
+}
+
+export function getAudioIntensity(): number {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  // Throttle FFT aggregation to ~30fps to reduce per-frame CPU spikes
+  if (now - lastAudioIntensityUpdate < 33) {
+    return cachedAudioIntensity;
+  }
+
+  const freqData = getFrequencyData();
+  let sum = 0;
+  let samples = 0;
+
+  // Sample every other bin to reduce work while keeping responsiveness
+  for (let i = 0; i < freqData.length; i += 2) {
+    sum += Math.abs(freqData[i]);
+    samples++;
+  }
+
+  const average = samples > 0 ? sum / samples : 0;
+  cachedAudioIntensity = 0.3 + average / 55;
+  lastAudioIntensityUpdate = now;
+
+  return cachedAudioIntensity;
 }
 
 export function getWaveformData(): Float32Array {
