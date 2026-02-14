@@ -226,11 +226,6 @@ function generateParticleData(count: number) {
   return { positions: pos, originalPositions: origPos, colors: col };
 }
 
-// Pre-generate for default count (will be regenerated based on performance)
-const DEFAULT_PARTICLE_COUNT = 5000;
-let PARTICLE_DATA = generateParticleData(DEFAULT_PARTICLE_COUNT);
-let velocities = new Float32Array(DEFAULT_PARTICLE_COUNT * 3);
-
 function ParticleField({
   envParams,
   config,
@@ -241,19 +236,17 @@ function ParticleField({
   const pointsRef = useRef<THREE.Points>(null);
   const frameCount = useRef(0);
 
-  const [positions, originalPositions, colors, particleCount] = useMemo(() => {
-    // Regenerate particles based on performance config
-    if (config.particleCount !== DEFAULT_PARTICLE_COUNT) {
-      PARTICLE_DATA = generateParticleData(config.particleCount);
-      velocities = new Float32Array(config.particleCount * 3);
-    }
-    return [
-      PARTICLE_DATA.positions,
-      PARTICLE_DATA.originalPositions,
-      PARTICLE_DATA.colors,
-      config.particleCount,
-    ];
-  }, [config.particleCount]);
+  // Generate particle data based on performance config (memoized)
+  const particleData = useMemo(
+    () => generateParticleData(config.particleCount),
+    [config.particleCount]
+  );
+
+  // Velocity buffer (useRef to allow mutation in useFrame)
+  const velocitiesRef = useRef<Float32Array>(new Float32Array(config.particleCount * 3));
+
+  const { positions, originalPositions, colors } = particleData;
+  const particleCount = config.particleCount;
 
   useFrame((state) => {
     if (!pointsRef.current) return;
@@ -261,6 +254,7 @@ function ParticleField({
     const time = state.clock.elapsedTime;
     const positions = pointsRef.current.geometry.attributes.position
       .array as Float32Array;
+    const velocities = velocitiesRef.current;
 
     let audioIntensity = 0.3;
     if (getIsPlaying()) {
