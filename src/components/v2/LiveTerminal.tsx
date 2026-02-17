@@ -62,27 +62,38 @@ export default function LiveTerminal() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      {/* Collapsed button */}
-      <button
-        onClick={toggleExpand}
-        className="relative flex items-center gap-2 px-3 py-2 border border-white/10 bg-black/70 backdrop-blur-md hover:border-cyan-400/30 hover:bg-black/80 transition-all"
-      >
-        <div
-          className={`w-2 h-2 ${
-            isLive ? "bg-red-500 animate-pulse" : "bg-white/20"
-          }`}
-        />
-        <span
-          className={`text-[10px] tracking-wider ${
-            isLive ? "text-white/60" : "text-white/30"
-          }`}
+      {/* Collapsed bar */}
+      <div className="flex items-center border border-white/10 bg-black/70 backdrop-blur-md">
+        {/* Live status - links to stream when live */}
+        {isLive ? (
+          <a
+            href={radioUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-cyan-400/5 transition-colors"
+          >
+            <div className="w-2 h-2 bg-red-500 animate-pulse" />
+            <span className="text-white/60 text-[10px] tracking-wider">
+              {radioLabel}: LIVE
+            </span>
+          </a>
+        ) : (
+          <span className="flex items-center gap-2 px-3 py-2">
+            <div className="w-2 h-2 bg-white/20" />
+            <span className="text-white/30 text-[10px] tracking-wider">
+              YouTube Live: OFFLINE
+            </span>
+          </span>
+        )}
+
+        {/* Terminal toggle */}
+        <button
+          onClick={toggleExpand}
+          className="px-2 py-2 border-l border-white/10 text-white/20 text-[10px] hover:bg-white/5 hover:text-white/40 transition-colors"
         >
-          {isLive ? `${radioLabel}: LIVE` : "YouTube Live: OFFLINE"}
-        </span>
-        <span className="text-white/20 text-[10px]">
           {isExpanded ? "[-]" : "[+]"}
-        </span>
-      </button>
+        </button>
+      </div>
 
       {/* Expanded terminal */}
       <AnimatePresence>
