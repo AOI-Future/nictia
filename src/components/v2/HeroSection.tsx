@@ -1,15 +1,10 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function HeroSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -31,7 +26,7 @@ export default function HeroSection() {
         {/* Subtitle above */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
-          animate={mounted ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.3 }}
           className="text-cyan-400/40 text-[10px] md:text-xs tracking-[0.5em] mb-6"
         >
@@ -45,7 +40,7 @@ export default function HeroSection() {
         >
           <motion.span
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={mounted ? { opacity: 1, scale: 1 } : {}}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className="block text-[15vw] md:text-[12vw] lg:text-[10vw] font-bold leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-cyan-400/60"
             style={{ letterSpacing: letterSpacing as unknown as string }}
@@ -56,7 +51,7 @@ export default function HeroSection() {
           {/* Glitch shadow layers */}
           <motion.span
             initial={{ opacity: 0 }}
-            animate={mounted ? { opacity: 0.1 } : {}}
+            animate={{ opacity: 0.1 }}
             transition={{ duration: 1, delay: 0.5 }}
             className="absolute inset-0 text-[15vw] md:text-[12vw] lg:text-[10vw] font-bold leading-none tracking-widest text-cyan-400"
             style={{ transform: "translate(2px, -2px)" }}
@@ -66,7 +61,7 @@ export default function HeroSection() {
           </motion.span>
           <motion.span
             initial={{ opacity: 0 }}
-            animate={mounted ? { opacity: 0.05 } : {}}
+            animate={{ opacity: 0.05 }}
             transition={{ duration: 1, delay: 0.6 }}
             className="absolute inset-0 text-[15vw] md:text-[12vw] lg:text-[10vw] font-bold leading-none tracking-widest text-red-400"
             style={{ transform: "translate(-2px, 2px)" }}
@@ -79,7 +74,7 @@ export default function HeroSection() {
         {/* Version tag */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
-          animate={mounted ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
           className="mt-6 flex items-center justify-center gap-3"
         >
@@ -93,7 +88,7 @@ export default function HeroSection() {
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={mounted ? { opacity: 1 } : {}}
+          animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1.5 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2"
         >
