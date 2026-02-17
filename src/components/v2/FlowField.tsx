@@ -207,7 +207,7 @@ export default function FlowField() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full z-0"
+      className="fixed inset-0 w-full h-full z-0 pointer-events-none"
       style={{ background: "#000" }}
     />
   );
