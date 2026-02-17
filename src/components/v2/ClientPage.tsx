@@ -93,6 +93,12 @@ export default function ClientPage() {
                 >
                   YOUTUBE MUSIC
                 </a>
+                <a
+                  href="/legal"
+                  className="text-white/20 text-[10px] tracking-wider hover:text-cyan-400/60 transition-colors"
+                >
+                  LEGAL
+                </a>
               </div>
 
               <span className="text-white/15 text-[9px] tracking-wider">

@@ -3,13 +3,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface RadioData {
+  enabled: boolean;
+  label: string;
+  url: string;
+}
+
 export default function LiveTerminal() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [radio, setRadio] = useState<RadioData | null>(null);
   const [logs, setLogs] = useState<string[]>([
     "> NICTIA SYSTEM v2.0 INITIALIZED",
     "> FLOW FIELD ACTIVE",
     "> AUDIO ENGINE STANDBY",
   ]);
+
+  // Fetch radio status from status.json
+  useEffect(() => {
+    fetch("/data/status.json")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.radio) {
+          setRadio(data.radio);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Add system logs over time
   useEffect(() => {
@@ -37,6 +56,10 @@ export default function LiveTerminal() {
     setIsExpanded((prev) => !prev);
   }, []);
 
+  const isLive = radio?.enabled ?? false;
+  const radioLabel = radio?.label ?? "RADIO";
+  const radioUrl = radio?.url ?? "#";
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {/* Collapsed button */}
@@ -44,9 +67,17 @@ export default function LiveTerminal() {
         onClick={toggleExpand}
         className="relative flex items-center gap-2 px-3 py-2 border border-white/10 bg-black/70 backdrop-blur-md hover:border-cyan-400/30 hover:bg-black/80 transition-all"
       >
-        <div className="w-2 h-2 bg-red-500/60 animate-pulse" />
-        <span className="text-white/40 text-[10px] tracking-wider">
-          YouTube Live: OFFLINE
+        <div
+          className={`w-2 h-2 ${
+            isLive ? "bg-red-500 animate-pulse" : "bg-white/20"
+          }`}
+        />
+        <span
+          className={`text-[10px] tracking-wider ${
+            isLive ? "text-white/60" : "text-white/30"
+          }`}
+        >
+          {isLive ? `${radioLabel}: LIVE` : "YouTube Live: OFFLINE"}
         </span>
         <span className="text-white/20 text-[10px]">
           {isExpanded ? "[-]" : "[+]"}
@@ -76,6 +107,24 @@ export default function LiveTerminal() {
                   {new Date().toISOString().slice(0, 10)}
                 </span>
               </div>
+
+              {/* Live stream link */}
+              {isLive && (
+                <a
+                  href={radioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 border-b border-cyan-400/10 hover:bg-cyan-400/5 transition-colors"
+                >
+                  <div className="w-2 h-2 bg-red-500 animate-pulse" />
+                  <span className="text-white/70 text-[10px] tracking-wider">
+                    {radioLabel}
+                  </span>
+                  <span className="text-cyan-400/40 text-[9px] ml-auto">
+                    WATCH
+                  </span>
+                </a>
+              )}
 
               {/* Logs */}
               <div className="p-3 max-h-48 overflow-y-auto space-y-1">
