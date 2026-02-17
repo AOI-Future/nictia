@@ -22,6 +22,9 @@ const HeroSection = dynamic(() => import("@/components/v2/HeroSection"), {
     </div>
   ),
 });
+const Press = dynamic(() => import("@/components/v2/Press"), {
+  ssr: false,
+});
 const Discography = dynamic(() => import("@/components/v2/Discography"), {
   ssr: false,
 });
@@ -54,6 +57,9 @@ export default function ClientPage() {
         <main className="relative z-10">
           {/* Hero */}
           <HeroSection />
+
+          {/* Press / News */}
+          <Press />
 
           {/* Discography */}
           <Discography />
