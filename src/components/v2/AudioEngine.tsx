@@ -171,17 +171,17 @@ export function AudioInitButton() {
         onClick={initializeAudio}
         className="fixed bottom-4 left-4 z-50 group"
       >
-        <div className="relative px-4 py-2 border border-cyan-400/20 bg-black/70 backdrop-blur-md hover:border-cyan-400/50 hover:bg-cyan-400/5 transition-all duration-300">
+        <div className="relative px-5 py-3 md:px-6 md:py-3.5 border border-cyan-400/30 bg-black/80 backdrop-blur-md hover:border-cyan-400/60 hover:bg-cyan-400/10 transition-all duration-300">
           {/* Corner decorations */}
-          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-400/40" />
-          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-cyan-400/40" />
-          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-cyan-400/40" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-400/40" />
+          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-400/50" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-400/50" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-400/50" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-400/50" />
 
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 border border-cyan-400/60 group-hover:bg-cyan-400/40 transition-colors" />
-            <span className="text-cyan-400/70 text-[10px] tracking-[0.2em] group-hover:text-cyan-400 transition-colors">
-              INITIALIZE AUDIO
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 border border-cyan-400/60 group-hover:bg-cyan-400/40 transition-colors" />
+            <span className="text-cyan-400/80 text-xs md:text-sm tracking-[0.2em] group-hover:text-cyan-400 transition-colors">
+              SOUND ON
             </span>
           </div>
         </div>

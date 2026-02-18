@@ -12,6 +12,7 @@ interface Release {
   coverArt: string;
   spotifyUrl: string;
   appleMusicUrl: string;
+  youtubeMusicUrl: string;
 }
 
 const RELEASES: Release[] = [
@@ -25,6 +26,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/metas%C3%B3nica/1871826724",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "PRLN ver 1.2 + ver 2.0 = ?",
@@ -36,6 +39,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/prln-ver-1-2-ver-2-0-single/1872316882",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Walking into the Summer Forest",
@@ -47,6 +52,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/walking-into-the-summer-forest-single/1823339680",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Yaruki Switch",
@@ -58,6 +65,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/%E3%82%84%E3%82%8B%E6%B0%97%E3%82%B9%E3%82%A4%E3%83%83%E3%83%81-single/1799215658",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Milk & Dark",
@@ -69,6 +78,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/milk-dark-single/1796177567",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Sauce Encyclopedia",
@@ -80,6 +91,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/sauce-encyclopedia/1794947274",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Tokyo Synesthesia",
@@ -91,6 +104,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/tokyo-synesthesia-single/1792884282",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Cuando el Sol y la Luna Cuentan Sus Secretos",
@@ -102,6 +117,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/cuando-el-sol-y-la-luna-cuentan-sus-secretos/1792884201",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
   {
     title: "Yuki ni Kakushita Egao",
@@ -113,6 +130,8 @@ const RELEASES: Release[] = [
     spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
     appleMusicUrl:
       "https://music.apple.com/jp/album/%E9%9B%AA%E3%81%AB%E9%9A%A0%E3%81%97%E3%81%9F%E7%AC%91%E9%A1%94-single/1790248506",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
   },
 ];
 
@@ -167,6 +186,14 @@ function ReleaseCard({ release, index }: { release: Release; index: number }) {
                   className="px-4 py-2 border border-[#fc3c44]/60 text-[#fc3c44] text-[10px] tracking-wider hover:bg-[#fc3c44]/20 transition-colors w-full text-center"
                 >
                   APPLE MUSIC
+                </a>
+                <a
+                  href={release.youtubeMusicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 border border-red-500/60 text-red-400 text-[10px] tracking-wider hover:bg-red-500/20 transition-colors w-full text-center"
+                >
+                  YOUTUBE MUSIC
                 </a>
               </motion.div>
             )}

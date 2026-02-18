@@ -65,21 +65,15 @@ export default function ClientPage() {
           <Discography />
 
           {/* Footer */}
-          <footer className="relative z-10 border-t border-cyan-400/5 py-12 px-4 md:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 bg-cyan-400/40" />
-                <span className="text-white/30 text-[10px] tracking-[0.3em]">
-                  NICTIA SYSTEM v2.0
-                </span>
-              </div>
-
-              <div className="flex items-center gap-6">
+          <footer className="relative z-10 border-t border-cyan-400/10 py-16 px-4 md:px-8">
+            <div className="flex flex-col items-center gap-8">
+              {/* Streaming links */}
+              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
                 <a
                   href="https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/20 text-[10px] tracking-wider hover:text-cyan-400/60 transition-colors"
+                  className="text-white/30 text-xs tracking-wider hover:text-[#1DB954] transition-colors"
                 >
                   SPOTIFY
                 </a>
@@ -87,7 +81,7 @@ export default function ClientPage() {
                   href="https://music.apple.com/jp/artist/nictia/1790247758"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/20 text-[10px] tracking-wider hover:text-cyan-400/60 transition-colors"
+                  className="text-white/30 text-xs tracking-wider hover:text-[#fc3c44] transition-colors"
                 >
                   APPLE MUSIC
                 </a>
@@ -95,21 +89,35 @@ export default function ClientPage() {
                   href="https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/20 text-[10px] tracking-wider hover:text-cyan-400/60 transition-colors"
+                  className="text-white/30 text-xs tracking-wider hover:text-red-400 transition-colors"
                 >
                   YOUTUBE MUSIC
                 </a>
-                <a
-                  href="/legal"
-                  className="text-white/20 text-[10px] tracking-wider hover:text-cyan-400/60 transition-colors"
-                >
-                  LEGAL
-                </a>
               </div>
 
-              <span className="text-white/15 text-[9px] tracking-wider">
-                AUTONOMOUS AUDIOVISUAL GENERATION
-              </span>
+              {/* Divider */}
+              <div className="w-16 h-px bg-cyan-400/10" />
+
+              {/* System info + Legal */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 bg-cyan-400/40" />
+                  <span className="text-white/30 text-[10px] tracking-[0.3em]">
+                    NICTIA SYSTEM v2.0
+                  </span>
+                </div>
+                <span className="text-white/15 text-[9px] tracking-wider">
+                  AUTONOMOUS AUDIOVISUAL GENERATION
+                </span>
+              </div>
+
+              {/* Legal link */}
+              <a
+                href="/legal"
+                className="text-white/30 text-xs tracking-[0.2em] border border-white/10 px-5 py-2 hover:border-cyan-400/30 hover:text-cyan-400/60 transition-all"
+              >
+                LEGAL
+              </a>
             </div>
           </footer>
         </main>

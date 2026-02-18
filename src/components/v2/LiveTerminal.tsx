@@ -63,24 +63,24 @@ export default function LiveTerminal() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {/* Collapsed bar */}
-      <div className="flex items-center border border-white/10 bg-black/70 backdrop-blur-md">
+      <div className="flex items-center border border-white/15 bg-black/80 backdrop-blur-md">
         {/* Live status - links to stream when live */}
         {isLive ? (
           <a
             href={radioUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 hover:bg-cyan-400/5 transition-colors"
+            className="flex items-center gap-2.5 px-4 py-3 md:px-5 md:py-3.5 hover:bg-cyan-400/5 transition-colors"
           >
-            <div className="w-2 h-2 bg-red-500 animate-pulse" />
-            <span className="text-white/60 text-[10px] tracking-wider">
+            <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-white/70 text-xs md:text-sm tracking-wider">
               {radioLabel}: LIVE
             </span>
           </a>
         ) : (
-          <span className="flex items-center gap-2 px-3 py-2">
-            <div className="w-2 h-2 bg-white/20" />
-            <span className="text-white/30 text-[10px] tracking-wider">
+          <span className="flex items-center gap-2.5 px-4 py-3 md:px-5 md:py-3.5">
+            <div className="w-2.5 h-2.5 bg-white/20 rounded-full" />
+            <span className="text-white/40 text-xs md:text-sm tracking-wider">
               YouTube Live: OFFLINE
             </span>
           </span>
@@ -89,7 +89,7 @@ export default function LiveTerminal() {
         {/* Terminal toggle */}
         <button
           onClick={toggleExpand}
-          className="px-2 py-2 border-l border-white/10 text-white/20 text-[10px] hover:bg-white/5 hover:text-white/40 transition-colors"
+          className="px-3 py-3 md:px-4 md:py-3.5 border-l border-white/10 text-white/30 text-xs md:text-sm hover:bg-white/5 hover:text-white/50 transition-colors"
         >
           {isExpanded ? "[-]" : "[+]"}
         </button>
