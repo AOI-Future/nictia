@@ -17,6 +17,19 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    title: "無彩色ポップ",
+    type: "Single",
+    releaseDate: "2026-02-27",
+    trackCount: 1,
+    coverArt:
+      "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/9d/d1/55/9dd155e7-cdf4-dea9-1e73-f150c556b17f/artwork.jpg/600x600bb.jpg",
+    spotifyUrl: "https://open.spotify.com/artist/0j7nZReeOs0R8lgdTxXtL6",
+    appleMusicUrl:
+      "https://music.apple.com/jp/album/%E7%84%A1%E5%BD%A9%E8%89%B2%E3%83%9D%E3%83%83%E3%83%97-single/1871808690",
+    youtubeMusicUrl:
+      "https://music.youtube.com/channel/UCrS9TtbbKn3rpN_KWd-u3_A",
+  },
+  {
     title: "Metasonica",
     type: "Album",
     releaseDate: "2026-02-07",
