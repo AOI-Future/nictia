@@ -59,7 +59,7 @@ const jsonLd = {
   },
   "sameAs": [
     "https://aoifuture.com",
-    "https://aoifuture.bandcamp.com"
+    "https://nictia.bandcamp.com"
   ],
   "knowsAbout": ["AI Music", "Generative Audio", "WebGL", "Ambient Techno"]
 };
