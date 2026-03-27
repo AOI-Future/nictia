@@ -13,7 +13,7 @@
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
     "flatted": "^3.4.2",
-    "framer-motion": "^12.34.4",
+    "framer-motion": "^12.38.0",
     "lenis": "^1.3.17",
     "next": "^16.2.1",
     "p5": "^2.2.2",
