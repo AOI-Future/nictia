@@ -25,12 +25,8 @@
   },
   "overrides": {
     "flatted": "^3.4.2",
-    "minimatch": {
-      "brace-expansion": "^5.0.5"
-    },
-    "tinyglobby": {
-      "picomatch": "^4.0.4"
-    }
+    "brace-expansion": ">=1.1.13",
+    "picomatch": ">=2.3.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
