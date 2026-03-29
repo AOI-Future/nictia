@@ -7,13 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "audit:ci": "npm audit"
+    "audit:ci": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
-    "flatted": "3.4.2",
     "framer-motion": "^12.34.4",
     "lenis": "^1.3.17",
     "next": "16.2.1",
