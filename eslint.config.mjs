@@ -1,5 +1,8 @@
+import { createRequire } from "node:module";
 import { defineConfig, globalIgnores } from "eslint/config";
-import next from "eslint-config-next";
+
+const require = createRequire(import.meta.url);
+const next = require("eslint-config-next");
 
 const reactRuleOverrides = Object.fromEntries(
   next
