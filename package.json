@@ -25,8 +25,8 @@
   },
   "overrides": {
     "flatted": "3.4.2",
-    "brace-expansion": "2.0.3",
-    "minimatch": "9.0.9",
+    "brace-expansion": "2.0.2",
+    "minimatch": "10.0.1",
     "picomatch": "4.0.4"
   },
   "devDependencies": {
