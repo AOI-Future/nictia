@@ -2,25 +2,21 @@ import { createRequire } from "node:module";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 const require = createRequire(import.meta.url);
-const next = require("eslint-config-next");
+const nextVitals = require("eslint-config-next/core-web-vitals");
+const nextTs = require("eslint-config-next/typescript");
 
 const reactRuleOverrides = Object.fromEntries(
-  next
+  [...nextVitals, ...nextTs]
     .flatMap((config) => Object.keys(config.rules ?? {}))
     .filter((rule) => rule.startsWith("react/"))
     .map((rule) => [rule, "off"]),
 );
 
 const eslintConfig = defineConfig([
-  ...next,
+  ...nextVitals,
+  ...nextTs,
   {
     rules: reactRuleOverrides,
-  },
-  {
-    rules: {
-      "@next/next/no-html-link-for-pages": "error",
-      "@next/next/no-sync-scripts": "error",
-    },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([
