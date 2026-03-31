@@ -13,8 +13,8 @@ const reactRuleOverrides = Object.fromEntries(
 );
 
 const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+  ...(Array.isArray(nextVitals) ? nextVitals : [nextVitals]),
+  ...(Array.isArray(nextTs) ? nextTs : [nextTs]),
   {
     rules: reactRuleOverrides,
   },
