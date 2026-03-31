@@ -6,7 +6,10 @@ const nextVitals = require("eslint-config-next/core-web-vitals");
 const nextTs = require("eslint-config-next/typescript");
 
 const reactRuleOverrides = Object.fromEntries(
-  [...nextVitals, ...nextTs]
+  [
+    ...(Array.isArray(nextVitals) ? nextVitals : [nextVitals]),
+    ...(Array.isArray(nextTs) ? nextTs : [nextTs]),
+  ]
     .flatMap((config) => Object.keys(config.rules ?? {}))
     .filter((rule) => rule.startsWith("react/"))
     .map((rule) => [rule, "off"]),
