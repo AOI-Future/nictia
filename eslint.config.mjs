@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 const require = createRequire(import.meta.url);
-const nextVitals = require("eslint-config-next/core-web-vitals");
+const nextVitals = require("eslint-config-next/core-web-vitals.js");
 const nextTs = require("eslint-config-next/typescript");
 
 const reactRuleOverrides = Object.fromEntries(
