@@ -5,12 +5,12 @@ const require = createRequire(import.meta.url);
 
 let nextVitals, nextTs;
 try {
-  ({ default: nextVitals } = await import("eslint-config-next/core-web-vitals.js"));
+  nextVitals = (await import("eslint-config-next/core-web-vitals")).default;
 } catch {
   nextVitals = require("eslint-config-next/core-web-vitals");
 }
 try {
-  ({ default: nextTs } = await import("eslint-config-next/typescript.js"));
+  nextTs = (await import("eslint-config-next/typescript")).default;
 } catch {
   nextTs = require("eslint-config-next/typescript");
 }
