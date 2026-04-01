@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 
 let nextVitals, nextTs;
 try {
-  ({ default: nextVitals } = await import("eslint-config-next/core-web-vitals"));
+  ({ default: nextVitals } = await import("eslint-config-next/core-web-vitals.js"));
 } catch {
   nextVitals = require("eslint-config-next/core-web-vitals");
 }
