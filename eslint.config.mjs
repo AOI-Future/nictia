@@ -1,7 +1,20 @@
 import { defineConfig, globalIgnores } from "eslint/config";
+import { createRequire } from "module";
 
-const { default: nextVitals } = await import("eslint-config-next/core-web-vitals");
-const { default: nextTs } = await import("eslint-config-next/typescript");
+const require = createRequire(import.meta.url);
+
+let nextVitals, nextTs;
+try {
+  ({ default: nextVitals } = await import("eslint-config-next/core-web-vitals"));
+} catch {
+  nextVitals = require("eslint-config-next/core-web-vitals");
+}
+
+try {
+  ({ default: nextTs } = await import("eslint-config-next/typescript"));
+} catch {
+  nextTs = require("eslint-config-next/typescript");
+}
 
 const reactRuleOverrides = Object.fromEntries(
   [
