@@ -1,13 +1,12 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-
-const nextVitals = (await import("eslint-config-next/core-web-vitals")).default;
-const nextTs = (await import("eslint-config-next/typescript")).default;
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
 const reactRuleOverrides = Object.fromEntries(
   [...nextVitals, ...nextTs]
     .flatMap((config) => Object.keys(config.rules ?? {}))
     .filter((rule) => rule.startsWith("react/"))
-    .map((rule) => [rule, "off"]),
+    .map((rule) => [rule, "off"])
 );
 
 const eslintConfig = defineConfig([
@@ -16,9 +15,7 @@ const eslintConfig = defineConfig([
   {
     rules: reactRuleOverrides,
   },
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
