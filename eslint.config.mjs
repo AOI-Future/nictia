@@ -1,9 +1,11 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextConfig from "eslint-config-next";
+import nextTs from "eslint-config-next/typescript";
 import nextPlugin from "@next/eslint-plugin-next";
 
 const nextVitals = [
   ...nextConfig,
+  ...nextTs,
   nextPlugin.configs["core-web-vitals"],
 ];
 
