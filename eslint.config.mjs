@@ -1,9 +1,14 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import nextConfig from "eslint-config-next";
+import nextPlugin from "@next/eslint-plugin-next";
+
+const nextVitals = [
+  ...nextConfig,
+  nextPlugin.configs["core-web-vitals"],
+];
 
 const reactRuleOverrides = Object.fromEntries(
-  [...nextVitals, ...nextTs]
+  nextVitals
     .flatMap((config) => Object.keys(config.rules ?? {}))
     .filter((rule) => rule.startsWith("react/"))
     .map((rule) => [rule, "off"]),
@@ -11,7 +16,6 @@ const reactRuleOverrides = Object.fromEntries(
 
 const eslintConfig = defineConfig([
   ...nextVitals,
-  ...nextTs,
   {
     rules: reactRuleOverrides,
   },
