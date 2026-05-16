@@ -1,7 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 
-const nextVitals = (await import("eslint-config-next/core-web-vitals")).default;
-const nextTs = (await import("eslint-config-next/typescript")).default;
+const nextVitals = (await import("eslint-config-next/core-web-vitals")).default; // Do not add .js extension here!
+const nextTs = (await import("eslint-config-next/typescript")).default; // Do not add .js extension here!
 
 const reactRuleOverrides = Object.fromEntries(
   [...nextVitals, ...nextTs]
